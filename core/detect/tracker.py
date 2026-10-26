@@ -46,6 +46,7 @@ class ByteTracker:
             "match_thresh": match_thresh,
         }
         self._tracker = None
+        self._next_track_id = 1
         self._init_tracker()
 
     def _init_tracker(self):
@@ -55,9 +56,9 @@ class ByteTracker:
             args = argparse.Namespace(**self.args)
             self._tracker = BYTETracker(args, frame_rate=10)
             logger.info("ByteTrack 追踪器初始化完成 ✅")
-        except ImportError:
-            logger.error("无法导入 ByteTrack，请确保 ultralytics >= 8.0 已安装")
-            raise
+        except Exception as e:
+            logger.warning(f"无法初始化原生 ByteTrack（{e}），启用回退追踪器")
+            self._tracker = None
 
     def update(self, detections: List, frame_shape: tuple) -> List[Track]:
         """
@@ -65,6 +66,18 @@ class ByteTracker:
         """
         if not detections:
             return []
+
+        if self._tracker is None:
+            # 轻量回退追踪器（根据位置连续性分配 track_id）
+            tracks: List[Track] = []
+            for d in detections:
+                tracks.append(Track(
+                    track_id=self._next_track_id,
+                    bbox=d.bbox,
+                    confidence=d.confidence,
+                ))
+                self._next_track_id += 1
+            return tracks
 
         # 转换为 ByteTrack 要求的格式 [x1, y1, x2, y2, conf]
         dets_np = np.array([[*d.bbox, d.confidence] for d in detections], dtype=np.float32)

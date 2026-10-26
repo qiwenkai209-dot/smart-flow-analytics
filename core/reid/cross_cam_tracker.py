@@ -139,8 +139,8 @@ class CrossCameraTracker:
 
         for gid, pf in self._global_features.items():
             # 只对最近消失过的特征进行比对（省算力）
-            disappear_key = (camera_id, gid)
-            disappeared_at = self._disappear_time.get(disappear_key, now - self.match_window - 1)
+            # 获取该目标在上一个摄像头的消失时间或最后出现时间
+            disappeared_at = self._disappear_time.get((pf.camera_id, gid), pf.last_seen)
             if (now - disappeared_at) > self.match_window and pf.camera_id != camera_id:
                 continue  # 超过时间窗口，跳过
 
@@ -153,6 +153,7 @@ class CrossCameraTracker:
             logger.debug(f"Re-ID 匹配成功: ({camera_id},{track_id}) -> {best_id} (sim={best_sim:.3f})")
             self._global_features[best_id].feature_vector = feature  # 更新特征
             self._global_features[best_id].last_seen = now
+            self._global_features[best_id].camera_id = camera_id
             return best_id
         elif best_sim >= self.uncertain_threshold and best_id:
             logger.debug(f"Re-ID 不确定: sim={best_sim:.3f}，分配新 ID")
@@ -174,6 +175,10 @@ class CrossCameraTracker:
         global_id = self._local_to_global.pop(local_key, None)
         if global_id:
             self._disappear_time[(camera_id, global_id)] = time.time()
+
+    def cleanup_expired(self):
+        """清理过期特征向量（公共接口）"""
+        self._cleanup_expired()
 
     def _cleanup_expired(self):
         """清理过期特征向量（TTL 机制）"""

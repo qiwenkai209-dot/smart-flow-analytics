@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  # 后端核心服务（GPU CUDA 加速）
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gpu
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://sfa:sfa123@db:5432/smartflow
+      - REDIS_URL=redis://redis:6379/0
+      - DEVICE=cuda:0
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - ../configs:/app/configs
+      - ../models:/app/models
+      - snapshots:/app/snapshots
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+
+  # 前端大屏（SPA + Nginx 反向代理）
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "5173:80"
+    volumes:
+      - ../frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # PostgreSQL + TimescaleDB
+  db:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: sfa
+      POSTGRES_PASSWORD: sfa123
+      POSTGRES_DB: smartflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  snapshots:

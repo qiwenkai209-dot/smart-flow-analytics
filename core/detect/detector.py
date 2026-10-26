@@ -2,7 +2,10 @@ import logging
 from dataclasses import dataclass
 from typing import List, Optional
 import numpy as np
-from ultralytics import YOLO
+try:
+    from ultralytics import YOLO
+except ImportError:
+    YOLO = None
 
 logger = logging.getLogger(__name__)
 
@@ -32,17 +35,29 @@ class PersonDetector:
         self.iou_threshold = iou_threshold
         self.imgsz = imgsz
         self.device = device
+        self.model = None
 
-        logger.info(f"正在加载检测模型: {model_path} @ {device}")
-        self.model = YOLO(model_path)
-        self.model.to(device)
-        logger.info("检测模型加载完成 ✅")
+        if YOLO is None:
+            logger.warning("未检测到 ultralytics 库，检测器将以仿真模式运行")
+            return
+
+        try:
+            logger.info(f"正在加载检测模型: {model_path} @ {device}")
+            self.model = YOLO(model_path)
+            self.model.to(device)
+            logger.info("检测模型加载完成 ✅")
+        except Exception as e:
+            logger.warning(f"检测模型加载失败（{e}），以仿真模式运行")
+            self.model = None
 
     def detect(self, frame: np.ndarray) -> List[Detection]:
         """
         对单帧图像进行人体检测
         返回画面中所有 person 的检测结果
         """
+        if self.model is None:
+            return []
+
         results = self.model.predict(
             frame,
             conf=self.conf_threshold,
