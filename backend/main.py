@@ -153,3 +153,30 @@ async def pipeline_stats():
     if not orch:
         return {"pipelines": [], "message": "Orchestrator 未启动"}
     return {"pipelines": orch.get_all_stats()}
+
+
+# ── 托管前端静态资源（一体化可执行软件支持） ─────────────────────────────
+import sys
+from fastapi.responses import FileResponse
+
+if getattr(sys, "frozen", False):
+    base_dir = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+    frontend_dist = os.path.join(base_dir, "frontend", "dist")
+else:
+    frontend_dist = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
+
+if os.path.exists(frontend_dist):
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="frontend-assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa_frontend(full_path: str):
+        target = os.path.join(frontend_dist, full_path)
+        if full_path and os.path.isfile(target):
+            return FileResponse(target)
+        index_file = os.path.join(frontend_dist, "index.html")
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
+        return {"message": "Smart Flow Analytics API 正在运行，前端页面未找到"}
+
