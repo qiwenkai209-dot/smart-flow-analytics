@@ -4,7 +4,10 @@
  */
 import { ref, onMounted, onUnmounted } from 'vue'
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/realtime'
+const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+const host = typeof window !== 'undefined' ? window.location.host : 'localhost:5173'
+const defaultWs = `${protocol}//${host}/ws/realtime`
+const WS_URL = import.meta.env.VITE_WS_URL || defaultWs
 const RECONNECT_DELAY = 3000
 
 export function useRealtimeData() {

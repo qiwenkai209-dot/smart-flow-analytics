@@ -79,7 +79,7 @@ import { useRealtimeData } from '../composables/useRealtimeData'
 import { useECharts } from '../composables/useECharts'
 import axios from 'axios'
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API = import.meta.env.VITE_API_URL || ''
 
 // ── 实时数据 ───────────────────────────────────
 const { data, connected } = useRealtimeData()

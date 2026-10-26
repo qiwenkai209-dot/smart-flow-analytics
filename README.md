@@ -71,6 +71,12 @@ uvicorn backend.main:app --reload
 
 # 6. 启动前端（新终端）
 cd frontend && npm install && npm run dev
+
+# 7. (可选) 无摄像头时一键启动客流动态数据仿真演示
+python scripts/demo_simulator.py
+
+# 8. 运行全量自动化测试（25 项单元与集成测试）
+pytest -v
 ```
 
 ## ⚙️ 摄像头配置示例
