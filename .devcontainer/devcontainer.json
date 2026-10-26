@@ -1,0 +1,36 @@
+{
+  "name": "Smart Flow Analytics Dev",
+  "image": "mcr.microsoft.com/devcontainers/python:3.10",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "postCreateCommand": "pip install poetry && poetry install --no-root && cd frontend && npm install",
+  "forwardPorts": [8000, 5173, 5432],
+  "portsAttributes": {
+    "8000": { "label": "FastAPI 后端", "onAutoForward": "notify" },
+    "5173": { "label": "Vue3 大屏前端", "onAutoForward": "openBrowser" },
+    "5432": { "label": "PostgreSQL", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.pylance",
+        "ms-python.mypy-type-checker",
+        "charliermarsh.ruff",
+        "Vue.volar",
+        "ms-azuretools.vscode-docker",
+        "humao.rest-client",
+        "ms-vscode.live-server"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "editor.formatOnSave": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        }
+      }
+    }
+  }
+}

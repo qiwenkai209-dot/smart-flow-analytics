@@ -1,0 +1,44 @@
+name: Model Benchmark
+
+on:
+  schedule:
+    - cron: "0 2 * * 1"   # 每周一凌晨2点自动运行
+  workflow_dispatch:         # 支持手动触发
+
+jobs:
+  benchmark:
+    name: 模型精度 & 速度评测
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: 安装依赖
+        run: |
+          pip install poetry
+          poetry install --no-root
+
+      - name: 下载测试视频与模型（小样本）
+        run: python models/download_models.py --benchmark-only
+
+      - name: 运行 Benchmark
+        run: poetry run python benchmark/run_benchmark.py --output benchmark/reports/latest.json
+
+      - name: 提交 Benchmark 报告到仓库
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: 自动更新 benchmark 报告 [skip ci]"
+          file_pattern: "benchmark/reports/*.json"
+
+      - name: 发布 GitHub Pages 可视化报告
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: benchmark/reports

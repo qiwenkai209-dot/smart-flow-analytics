@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  # 后端核心服务
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cpu
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://sfa:sfa123@db:5432/smartflow
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ../configs:/app/configs
+      - ../models:/app/models
+      - snapshots:/app/snapshots
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+
+  # 前端大屏（生产构建，由 nginx 托管）
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "5173:80"
+    volumes:
+      - ../frontend/dist:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # PostgreSQL + TimescaleDB
+  db:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: sfa
+      POSTGRES_PASSWORD: sfa123
+      POSTGRES_DB: smartflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Redis（用于多路摄像头跨进程消息队列）
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  snapshots:

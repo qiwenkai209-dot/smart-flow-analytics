@@ -1,0 +1,21 @@
+# ===== GPU 版 Docker 镜像（CUDA 12.1 + TensorRT）=====
+FROM nvcr.io/nvidia/pytorch:24.01-py3
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y nodejs npm && rm -rf /var/lib/apt/lists/*
+COPY pyproject.toml poetry.lock* ./
+RUN pip install poetry && poetry config virtualenvs.create false && poetry install --no-root --without dev
+
+COPY core/ ./core/
+COPY backend/ ./backend/
+COPY models/ ./models/
+COPY configs/ ./configs/
+
+COPY frontend/ ./frontend/
+RUN cd frontend && npm ci && npm run build
+
+EXPOSE 8000
+
+ENV CUDA_VISIBLE_DEVICES=0
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,213 @@
+/* =============================================
+   Smart Flow Analytics — 全局设计系统
+   ============================================= */
+
+/* ── Google Fonts 备用（index.html 已通过 link 加载） ── */
+:root {
+  /* 颜色系统 */
+  --bg-base:        #050d1a;
+  --bg-surface:     #0a1628;
+  --bg-card:        #0f1f38;
+  --bg-card-hover:  #152540;
+  --border:         rgba(0, 180, 255, 0.12);
+  --border-bright:  rgba(0, 180, 255, 0.35);
+
+  /* 主题色 */
+  --primary:        #00b4ff;
+  --primary-dim:    rgba(0, 180, 255, 0.15);
+  --accent:         #7c3aed;
+  --accent-dim:     rgba(124, 58, 237, 0.15);
+  --success:        #10d97a;
+  --warning:        #f59e0b;
+  --danger:         #ef4444;
+
+  /* 文字 */
+  --text-primary:   #e8f4fd;
+  --text-secondary: #7ea8c4;
+  --text-muted:     #3d6b87;
+
+  /* 字体 */
+  --font-sans: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+
+  /* 动画 */
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-glow: 0 0 24px rgba(0, 180, 255, 0.18);
+}
+
+/* ── Reset ──────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #app {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── 通用滚动条 ─────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+/* ── 卡片 ───────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.card:hover {
+  border-color: var(--border-bright);
+  box-shadow: var(--shadow-glow);
+}
+
+/* ── 卡片标题 ───────────────────────────────── */
+.card-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px; height: 14px;
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+/* ── 大数字 ─────────────────────────────────── */
+.stat-value {
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 20px rgba(0, 180, 255, 0.4);
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ── 状态标签 ───────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.badge-online  { background: rgba(16,217,122,0.15); color: var(--success); border: 1px solid rgba(16,217,122,0.3); }
+.badge-offline { background: rgba(239,68,68,0.15);  color: var(--danger);  border: 1px solid rgba(239,68,68,0.3); }
+.badge-warning { background: rgba(245,158,11,0.15); color: var(--warning); border: 1px solid rgba(245,158,11,0.3); }
+
+/* ── 脉冲动效（在线指示灯）── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+.pulse { animation: pulse 2s ease-in-out infinite; }
+
+/* ── 数字滚动进入动效 ───────────────────────── */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.count-up { animation: countUp 0.5s ease-out; }
+
+/* ── 扫描线背景 ─────────────────────────────── */
+.scanline-bg {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,180,255,0.015) 2px,
+      rgba(0,180,255,0.015) 4px
+    ),
+    var(--bg-base);
+}
+
+/* ── 按钮 ───────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition);
+}
+.btn-primary {
+  background: var(--primary);
+  color: #050d1a;
+}
+.btn-primary:hover { background: #33c3ff; box-shadow: 0 0 16px rgba(0,180,255,0.5); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+
+.btn-danger {
+  background: rgba(239,68,68,0.15);
+  color: var(--danger);
+  border: 1px solid rgba(239,68,68,0.3);
+}
+.btn-danger:hover { background: rgba(239,68,68,0.25); }
+
+/* ── 输入框 ─────────────────────────────────── */
+.input {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  padding: 8px 12px;
+  font-size: 13px;
+  width: 100%;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-dim); }
+
+/* ── 网格布局工具 ───────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+/* ── 弹性工具 ───────────────────────────────── */
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-gap-8  { display: flex; align-items: center; gap: 8px; }
+.flex-gap-12 { display: flex; align-items: center; gap: 12px; }
+
+/* ── 间距 ───────────────────────────────────── */
+.mt-8  { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mb-16 { margin-bottom: 16px; }
+
+/* ── 分隔线 ─────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+}

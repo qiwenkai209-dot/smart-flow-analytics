@@ -1,0 +1,59 @@
+[tool.poetry]
+name = "smart-flow-analytics"
+version = "0.1.0"
+description = "智慧展厅多路客流分析系统"
+authors = ["qiwenkai209-dot"]
+license = "Apache-2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+# 视频流处理
+opencv-python = "^4.9.0"
+onvif-zeep = "^0.2.12"
+# 目标检测与追踪
+ultralytics = "^8.3.0"           # YOLO11m
+# 属性识别（PP-Human 使用 PaddlePaddle）
+paddlepaddle = "^2.6.0"
+paddleclas = "^2.5.2"
+# Re-ID
+fastreid = {git = "https://github.com/facebookresearch/fastreid.git"}
+torch = "^2.2.0"
+torchvision = "^0.17.0"
+# 后端
+fastapi = "^0.111.0"
+uvicorn = {extras = ["standard"], version = "^0.30.0"}
+websockets = "^12.0"
+# 数据库
+sqlalchemy = "^2.0.30"
+asyncpg = "^0.29.0"
+alembic = "^1.13.0"
+# 数据处理与导出
+pandas = "^2.2.0"
+openpyxl = "^3.1.0"
+shapely = "^2.0.0"              # 多边形几何计算
+# 工具库
+pydantic = "^2.7.0"
+pydantic-settings = "^2.2.0"
+redis = "^5.0.0"
+loguru = "^0.7.2"
+pyyaml = "^6.0.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+pytest-asyncio = "^0.23.0"
+ruff = "^0.4.0"
+mypy = "^1.10.0"
+httpx = "^0.27.0"              # 测试 FastAPI
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

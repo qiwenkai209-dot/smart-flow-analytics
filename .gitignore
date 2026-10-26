@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+.env
+dist/
+build/
+*.egg-info/
+
+# 模型文件（大文件，用 DVC 管理）
+models/*.pt
+models/*.pth
+models/*.onnx
+models/*.tar
+models/reid/
+models/attribute/
+
+# 数据库
+*.db
+*.sqlite
+
+# 快照图片
+snapshots/
+
+# 前端
+frontend/node_modules/
+frontend/dist/
+
+# 测试视频
+benchmark/datasets/
+
+# 配置（含密码）
+configs/cameras.yaml
+configs/system.yaml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Docker
+docker/pgdata/
+
+# 报告（由 Actions 自动提交）
+# benchmark/reports/  ← 不忽略，让 Actions 提交
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,39 @@
+# 摄像头配置示例
+# 复制此文件为 cameras.yaml 并填入真实参数
+
+cameras:
+  # 示例1：通用 RTSP 摄像头
+  - id: cam_001
+    name: "展厅主入口"
+    rtsp_url: "rtsp://admin:password@192.168.1.100:554/stream1"
+    brand: generic          # generic | hikvision | dahua | uniview
+    fps_limit: 10           # 取帧率（省算力），通常 8~12 fps 足够
+    reconnect_interval: 5   # 断线重连间隔（秒）
+    rois:
+      - name: "入口计数线"
+        type: line                      # 越线计数（进/出判定）
+        points: [[0, 540], [1920, 540]] # 水平线坐标
+      - name: "展台A"
+        type: polygon                   # 多边形驻留区
+        polygon: [[200, 300], [600, 300], [600, 700], [200, 700]]
+        min_dwell_seconds: 5
+
+  # 示例2：海康威视私有流（直接用标准 RTSP，通常也支持）
+  - id: cam_002
+    name: "展台B 区监控"
+    rtsp_url: "rtsp://admin:hik12345@192.168.1.101:554/Streaming/Channels/101"
+    brand: hikvision
+    fps_limit: 8
+    rois:
+      - name: "展台B"
+        type: polygon
+        polygon: [[100, 200], [500, 200], [500, 600], [100, 600]]
+        min_dwell_seconds: 8
+
+  # 示例3：大华摄像头
+  - id: cam_003
+    name: "侧厅监控"
+    rtsp_url: "rtsp://admin:dahua123@192.168.1.102:554/cam/realmonitor?channel=1&subtype=0"
+    brand: dahua
+    fps_limit: 10
+    rois: []
