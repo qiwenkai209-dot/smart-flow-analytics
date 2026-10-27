@@ -2,8 +2,9 @@ name: Docker Build & Publish
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
     tags: ["v*.*.*"]
+  workflow_dispatch:
 
 jobs:
   build-cpu:
@@ -31,8 +32,8 @@ jobs:
           file: docker/Dockerfile.cpu
           push: true
           tags: |
-            ghcr.io/qiwenkai209-dot/smart-flow-analytics:latest-cpu
-            ghcr.io/qiwenkai209-dot/smart-flow-analytics:${{ github.sha }}-cpu
+            ghcr.io/${{ github.repository }}:latest-cpu
+            ghcr.io/${{ github.repository }}:${{ github.sha }}-cpu
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -61,7 +62,7 @@ jobs:
           file: docker/Dockerfile.gpu
           push: true
           tags: |
-            ghcr.io/qiwenkai209-dot/smart-flow-analytics:latest-gpu
-            ghcr.io/qiwenkai209-dot/smart-flow-analytics:${{ github.sha }}-gpu
+            ghcr.io/${{ github.repository }}:latest-gpu
+            ghcr.io/${{ github.repository }}:${{ github.sha }}-gpu
           cache-from: type=gha
           cache-to: type=gha,mode=max

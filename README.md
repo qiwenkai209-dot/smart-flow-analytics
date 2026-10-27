@@ -35,20 +35,37 @@ RTSP 流 ──> 取流引擎 ──> YOLO11m 检测 ──> ByteTrack 追踪
 
 ## 🚀 快速开始
 
-### 方式一：Docker 一键启动（推荐）
+### 方式一：Windows 独立运行版（免环境配置，双击即用）
 
+进入 [Releases](https://github.com/qiwenkai209-dot/smart-flow-analytics/releases) 页面，下载最新的 `SmartFlowAnalytics-Windows-x64.zip`：
+1. 解压到任意目录；
+2. 双击运行 `启动系统.bat`（正式接入摄像头）或 `启动系统(带客流仿真演示).bat`（离线动态演示模式）；
+3. 系统将自动唤起默认浏览器并打开可视化智能分析大屏（`http://localhost:8000`）。
+
+---
+
+### 方式二：Docker 一键启动（推荐生产部署）
 
 ```bash
-# CPU 版
+# CPU 版（基于 OpenVINO 加速，轻量运行）
 docker-compose -f docker/docker-compose.yml up -d
 
-# GPU 版
+# GPU 版（基于 NVIDIA CUDA 加速）
 docker-compose -f docker/docker-compose.gpu.yml up -d
 ```
 
-访问 `http://localhost:5173` 查看大屏
+---
 
-### 方式二：本地开发
+### 方式三：GitHub Codespaces 云端算力一键运行
+
+无需本地配置，直接使用 GitHub 免费云端虚拟机算力（包含完整的 Python 3.10、Node.js 20、Docker 环境）：
+1. 在仓库主页点击绿色的 **Code** 按钮，切换到 **Codespaces** 选项卡；
+2. 点击 **Create codespace on main**；
+3. 云端容器自动准备完毕后，端口 `8000`、`5173` 自动转发并在浏览器内弹窗直接体验！
+
+---
+
+### 方式四：本地源码开发
 
 ```bash
 # 1. 克隆仓库
@@ -62,22 +79,26 @@ poetry install
 # 3. 下载预训练模型
 python models/download_models.py
 
-# 4. 配置摄像头
-cp configs/cameras.example.yaml configs/cameras.yaml
-# 编辑 cameras.yaml 填入你的 RTSP 地址
+# 4. 启动服务（单入口自适应前后端）
+python run_server.py --demo
 
-# 5. 启动后端
-uvicorn backend.main:app --reload
-
-# 6. 启动前端（新终端）
-cd frontend && npm install && npm run dev
-
-# 7. (可选) 无摄像头时一键启动客流动态数据仿真演示
-python scripts/demo_simulator.py
-
-# 8. 运行全量自动化测试（25 项单元与集成测试）
+# 5. 运行全量自动化测试（28 项单元与集成测试）
 pytest -v
 ```
+
+---
+
+## ⚡ 充分利用 GitHub 算力工作体系
+
+本项目已深度接入 GitHub 云端计算生态：
+1. **GitHub Actions 自动化 CI 守护（Ubuntu 算力）**：
+   - 每次提交代码或提交 PR，GitHub 云端算力机自动触发 `ci.yml`，执行依赖检查、Ruff 代码规范检查、Mypy 类型校验以及全套 28 项自动化单元与集成测试。
+2. **GitHub Actions 自动构建与发布（Windows 算力）**：
+   - 当推送标签（如 `v1.0.0`）或在 Actions 页面点击“Run workflow”时，GitHub Windows 算力机将全自动完成前端 Vite 编译和 PyInstaller 独立打包，并自动将生成的 `SmartFlowAnalytics-Windows-x64.zip` 发布至 GitHub Releases 供用户下载。
+3. **GitHub Container Registry 镜像自动编译（Docker 云算力）**：
+   - 自动编译包含 OpenVINO 和 CUDA 的 CPU/GPU 镜像，推送至 `ghcr.io`，免除在本地机器拉取庞大 CUDA 镜像与编译的资源消耗。
+4. **GitHub 云端 Benchmark 自动基准评测**：
+   - 定时使用云端算力对 YOLO11 和 ReID 特征提取进行推理时延和 FPS 压测，并将报告自动更新部署至 GitHub Pages。
 
 ## ⚙️ 摄像头配置示例
 
