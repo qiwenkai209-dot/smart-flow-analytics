@@ -1,0 +1,25 @@
+{
+  "name": "Embedded Deep Learning Models",
+  "version": "1.0.0",
+  "runtime": "OpenCV DNN (Native C++ runtime, zero external framework dependency)",
+  "models": [
+    {
+      "task": "person_detection",
+      "model_file": "person_detection_mediapipe_2023mar.onnx",
+      "size_mb": 11.9,
+      "source": "OpenCV Model Zoo",
+      "architecture": "BlazePose / MediaPipe Person Detection",
+      "input_resolution": "Dynamic / MultiScale",
+      "output": "Bounding boxes, scores, keypoints"
+    },
+    {
+      "task": "gender_and_age",
+      "model_file": "genderage.onnx",
+      "size_mb": 1.3,
+      "source": "InsightFace Buffalo",
+      "architecture": "MobileFaceNet Multi-task",
+      "input_resolution": "96x96",
+      "output": "Gender logits (male/female), Age continuous prediction"
+    }
+  ]
+}

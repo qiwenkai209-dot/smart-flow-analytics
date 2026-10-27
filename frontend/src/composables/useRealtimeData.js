@@ -18,6 +18,7 @@ export function useRealtimeData() {
     gender: { male: 0, female: 0 },
     age_group: { child: 0, young: 0, adult: 0, elder: 0 },
     zone_dwell: [],
+    venues: [],
   })
   const connected = ref(false)
   let ws = null

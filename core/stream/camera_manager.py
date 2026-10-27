@@ -18,6 +18,103 @@ class CameraManager:
         self._cameras: Dict[str, RTSPReader] = {}
         self._rois: Dict[str, dict] = {}  # {roi_name: {camera_id, polygon, min_dwell_seconds, ...}}
         self._lock = threading.RLock()
+        self._load_defaults_if_empty()
+
+    def _load_defaults_if_empty(self):
+        """若无摄像头则初始化三路演示摄像头与固化展台"""
+        if self._cameras:
+            return
+        default_cams = [
+            CameraConfig(
+                id="cam_001",
+                name="展厅东门主入口",
+                rtsp_url="rtsp://admin:admin123@192.168.1.64:554/Streaming/Channels/101",
+                brand="hikvision",
+                fps_limit=10,
+                features=["in_out", "attribute_gender", "attribute_age"],
+                ip="192.168.1.64",
+                port=554,
+                channel=1,
+                subtype=0,
+                rois=[
+                    {
+                        "name": "入口迎宾区",
+                        "polygon": [[120, 240], [480, 240], [480, 520], [120, 520]],
+                        "min_dwell_seconds": 3.0,
+                    }
+                ]
+            ),
+            CameraConfig(
+                id="cam_002",
+                name="展台A-AI体验区",
+                rtsp_url="rtsp://admin:dahua123@192.168.1.65:554/cam/realmonitor?channel=1&subtype=0",
+                brand="dahua",
+                fps_limit=10,
+                features=["dwell", "attribute_gender", "attribute_age"],
+                ip="192.168.1.65",
+                port=554,
+                channel=1,
+                subtype=0,
+                rois=[
+                    {
+                        "name": "展台A",
+                        "polygon": [[150, 260], [520, 260], [500, 600], [130, 600]],
+                        "min_dwell_seconds": 5.0,
+                    }
+                ]
+            ),
+            CameraConfig(
+                id="cam_003",
+                name="展厅南门出口",
+                rtsp_url="rtsp://admin:admin123@192.168.1.66:554/live/ch1",
+                brand="generic",
+                fps_limit=8,
+                features=["in_out", "dwell"],
+                ip="192.168.1.66",
+                port=554,
+                channel=1,
+                subtype=0,
+                rois=[
+                    {
+                        "name": "展台B",
+                        "polygon": [[700, 260], [1080, 260], [1120, 620], [740, 620]],
+                        "min_dwell_seconds": 8.0,
+                    }
+                ]
+            ),
+        ]
+        for cfg in default_cams:
+            self.add_camera(cfg)
+
+    def persist_config(self):
+        """将当前摄像头及固化展台写入 YAML 配置文件"""
+        try:
+            import os, yaml
+            os.makedirs("configs", exist_ok=True)
+            data = {"cameras": []}
+            for cam in self._cameras.values():
+                cfg = cam.config
+                data["cameras"].append({
+                    "id": cfg.id,
+                    "name": cfg.name,
+                    "brand": cfg.brand,
+                    "rtsp_url": cfg.rtsp_url,
+                    "fps_limit": cfg.fps_limit,
+                    "features": cfg.features,
+                    "ip": cfg.ip,
+                    "port": cfg.port,
+                    "username": cfg.username,
+                    "password": cfg.password,
+                    "channel": cfg.channel,
+                    "subtype": cfg.subtype,
+                    "rois": cfg.rois,
+                })
+            with open("configs/cameras.yaml", "w", encoding="utf-8") as f:
+                yaml.dump(data, f, allow_unicode=True, sort_keys=False)
+            logger.info("💾 摄像头及固化区域已成功持久化至 configs/cameras.yaml")
+        except Exception as e:
+            logger.warning(f"持久化配置文件失败: {e}")
+
 
     def add_camera(self, config: CameraConfig) -> bool:
         """动态新增一路摄像头"""
@@ -140,6 +237,7 @@ class CameraManager:
                     "polygon": polygon,
                     "min_dwell_seconds": min_dwell_seconds,
                 })
+            self.persist_config()
             return True
 
     def delete_roi(self, name: str) -> bool:
@@ -151,6 +249,7 @@ class CameraManager:
             if cam_id and cam_id in self._cameras:
                 cam = self._cameras[cam_id]
                 cam.config.rois = [r for r in cam.config.rois if r.get("name") != name]
+            self.persist_config()
             return True
 
     def stop_all(self):

@@ -59,11 +59,20 @@ manager = ConnectionManager()
 
 
 async def _get_snapshot() -> dict:
-    """获取实时快照，数据库不可用时返回演示数据"""
+    """获取实时快照，数据库不可用时返回演示数据，同时注入展厅出入规划核算数据"""
     try:
-        return await FlowRepository.get_realtime_snapshot()
+        data = await FlowRepository.get_realtime_snapshot()
     except Exception:
-        return _DEMO_PAYLOAD
+        data = dict(_DEMO_PAYLOAD)
+
+    try:
+        from .analytics import get_all_venues_snapshot
+        data["venues"] = await get_all_venues_snapshot()
+    except Exception as e:
+        logger.debug(f"加载展厅实时数据失败: {e}")
+        data["venues"] = []
+
+    return data
 
 
 @router.websocket("/realtime")

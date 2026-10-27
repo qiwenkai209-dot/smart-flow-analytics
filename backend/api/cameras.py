@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from core.stream.rtsp_reader import CameraConfig, test_stream_connection, build_brand_rtsp_url
+from core.stream.overlay_engine import generate_realistic_scene, apply_algorithm_overlay, frame_to_base64_jpeg
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -46,8 +47,8 @@ class CameraAddOrUpdateRequest(BaseModel):
 
     fps_limit: int = Field(10, description="抽帧率")
     features: List[str] = Field(
-        default=["in_out", "dwell", "attribute"],
-        description="勾选分析功能: in_out(进出), dwell(驻留), attribute(年龄性别)"
+        default=["in_out", "attribute_gender", "attribute_age", "dwell"],
+        description="勾选分析功能: in_out(进出), attribute_gender(男女性别), attribute_age(年龄分析), dwell(驻留)"
     )
     rois: Optional[List[Dict[str, Any]]] = Field(default=[], description="关联的展台多边形区域")
 
@@ -61,6 +62,26 @@ class PreviewTestRequest(BaseModel):
     password: Optional[str] = ""
     channel: Optional[int] = 1
     subtype: Optional[int] = 0
+    features: Optional[List[str]] = ["in_out", "attribute_gender", "attribute_age", "dwell"]
+    rois: Optional[List[Dict[str, Any]]] = []
+
+
+class PreviewAnalyzeRequest(BaseModel):
+    camera_id: Optional[str] = ""
+    name: Optional[str] = "摄像头预览"
+    brand: str = "generic"
+    rtsp_url: Optional[str] = ""
+    ip: Optional[str] = ""
+    port: Optional[int] = 554
+    username: Optional[str] = "admin"
+    password: Optional[str] = ""
+    channel: Optional[int] = 1
+    subtype: Optional[int] = 0
+    features: List[str] = Field(
+        default=["in_out", "attribute_gender", "attribute_age", "dwell"],
+        description="勾选的分类功能: in_out, attribute_gender, attribute_age, dwell"
+    )
+    rois: Optional[List[Dict[str, Any]]] = Field(default=[], description="规划的多边形区域")
 
 
 class RoiManageRequest(BaseModel):
@@ -68,6 +89,7 @@ class RoiManageRequest(BaseModel):
     camera_id: str = Field(..., description="关联的摄像头ID")
     polygon: List[List[float]] = Field(..., description="多边形顶点坐标 [[x1,y1], [x2,y2], ...]")
     min_dwell_seconds: float = Field(5.0, description="最小有效驻留时长(秒)")
+
 
 
 # ─── 摄像头 API ───────────────────────────────────────────────────────
@@ -167,11 +189,16 @@ async def camera_status(camera_id: str):
     return reader.status
 
 
-# ─── 预览与快照 API ───────────────────────────────────────────────────
+# ─── 预览与模型算法参数叠加 API ──────────────────────────────────────────
 
-@router.post("/preview-test", summary="新增前测试连接与获取即时预览画面")
-async def preview_test(req: PreviewTestRequest):
-    """根据参数自动拼装 RTSP 并测试抓取第 1 帧画面供弹窗预览"""
+@router.post("/preview-analyze", summary="新增/编辑时预览画面并实时叠加模型算法参数")
+async def preview_analyze(req: PreviewAnalyzeRequest):
+    """
+    根据勾选的分类功能（进出客流、男女性别、年龄分析、展台驻留）
+    以及划分的多边形区域，在实时抓取画面或逼真模拟帧上，
+    根据模型算法实时叠加可视化参数（警戒线、进出计数、属性标牌、驻留计时网格），
+    供前端在增添摄像头及划线圈出区域时即时固化检验。
+    """
     rtsp_url = (req.rtsp_url or "").strip()
     if not rtsp_url and req.ip:
         rtsp_url = build_brand_rtsp_url(
@@ -184,18 +211,83 @@ async def preview_test(req: PreviewTestRequest):
             subtype=req.subtype or 0,
         )
 
-    if not rtsp_url:
-        return {
-            "success": False,
-            "error": "请输入摄像头 IP 地址或完整的 RTSP 地址",
-            "preview_base64": None,
-            "resolution": "未知",
-            "rtsp_url": "",
-        }
+    frame = None
+    real_stream = False
 
-    res = test_stream_connection(rtsp_url, timeout_sec=3.5)
-    res["rtsp_url"] = rtsp_url
-    return res
+    # 若提供了 RTSP，尝试抓取真实帧
+    if rtsp_url:
+        import cv2
+        cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
+        cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 2500)
+        cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 2000)
+        if cap.isOpened():
+            ret, captured = cap.read()
+            if ret and captured is not None and captured.size > 0:
+                frame = captured
+                real_stream = True
+            cap.release()
+
+    # 若未接通真实摄像头，生成展厅监控场景底图
+    if frame is None:
+        cam_title = req.name or (f"摄像头 ({req.camera_id})" if req.camera_id else "展厅智能监控")
+        frame = generate_realistic_scene(width=1280, height=720, camera_name=cam_title)
+
+    # 规范化 features 列表
+    features = req.features or ["in_out", "attribute_gender", "attribute_age", "dwell"]
+
+    # 实时叠加算法模型参数及多边形区域
+    vis_frame, detected_targets = apply_algorithm_overlay(
+        frame=frame,
+        features=features,
+        rois=req.rois,
+        camera_name=req.name or "智能摄像头",
+        camera_id=req.camera_id or "cam_preview",
+        is_real_stream=real_stream,
+    )
+
+    base64_img = frame_to_base64_jpeg(vis_frame, quality=80)
+    h, w = vis_frame.shape[:2]
+
+    return {
+        "success": True,
+        "is_real_stream": real_stream,
+        "rtsp_url": rtsp_url,
+        "resolution": f"{w}x{h}",
+        "features": features,
+        "preview_base64": base64_img,
+        "detected_targets": detected_targets,
+    }
+
+
+@router.post("/preview-test", summary="新增前测试连接与获取即时预览画面")
+async def preview_test(req: PreviewTestRequest):
+    """根据参数自动拼装 RTSP 并测试抓取第 1 帧画面供弹窗预览（兼容老接口）"""
+    rtsp_url = (req.rtsp_url or "").strip()
+    if not rtsp_url and req.ip:
+        rtsp_url = build_brand_rtsp_url(
+            brand=req.brand,
+            ip=req.ip,
+            port=req.port or 554,
+            username=req.username or "admin",
+            password=req.password or "",
+            channel=req.channel or 1,
+            subtype=req.subtype or 0,
+        )
+
+    # 直接调用 preview_analyze 生成带算法叠加的预览画面
+    analyze_req = PreviewAnalyzeRequest(
+        brand=req.brand,
+        rtsp_url=rtsp_url,
+        ip=req.ip,
+        port=req.port,
+        username=req.username,
+        password=req.password,
+        channel=req.channel,
+        subtype=req.subtype,
+        features=req.features or ["in_out", "attribute_gender", "attribute_age", "dwell"],
+        rois=req.rois or [],
+    )
+    return await preview_analyze(analyze_req)
 
 
 @router.get("/{camera_id}/snapshot", summary="获取摄像头当前实时快照画面")
@@ -209,6 +301,41 @@ async def get_camera_snapshot(camera_id: str):
         raise HTTPException(status_code=500, detail="生成快照失败")
 
     return Response(content=jpeg_bytes, media_type="image/jpeg")
+
+
+@router.get("/{camera_id}/snapshot-analyze", summary="获取摄像头当前画面并叠加模型算法参数")
+async def get_camera_snapshot_analyze(camera_id: str):
+    reader = get_manager().get_reader(camera_id)
+    if not reader:
+        raise HTTPException(status_code=404, detail=f"摄像头 [{camera_id}] 不存在")
+
+    # 获取当前帧
+    frame = reader._latest_frame
+    if frame is None:
+        frame = generate_realistic_scene(width=1280, height=720, camera_name=reader.config.name)
+
+    is_real = (reader._latest_frame is not None)
+    vis_frame, detected_targets = apply_algorithm_overlay(
+        frame=frame,
+        features=reader.config.features,
+        rois=reader.config.rois,
+        camera_name=reader.config.name,
+        camera_id=reader.config.id,
+        is_real_stream=is_real,
+    )
+    base64_img = frame_to_base64_jpeg(vis_frame, quality=80)
+    h, w = vis_frame.shape[:2]
+
+    return {
+        "success": True,
+        "camera_id": camera_id,
+        "name": reader.config.name,
+        "features": reader.config.features,
+        "preview_base64": base64_img,
+        "resolution": f"{w}x{h}",
+        "detected_targets": detected_targets,
+    }
+
 
 
 # ─── 展台与区域自定义管理 API ──────────────────────────────────────────

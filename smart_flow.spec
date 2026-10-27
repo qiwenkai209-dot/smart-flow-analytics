@@ -9,9 +9,12 @@ project_dir = os.path.abspath(SPECPATH)
 datas = [
     (os.path.join(project_dir, 'frontend', 'dist'), os.path.join('frontend', 'dist')),
     (os.path.join(project_dir, 'configs'), 'configs'),
+    (os.path.join(project_dir, 'embedded_models'), 'embedded_models'),
 ]
 
 hidden_imports = [
+    'embedded_models',
+    'embedded_models.mp_persondet',
     'uvicorn',
     'uvicorn.logging',
     'uvicorn.loops',
@@ -36,6 +39,28 @@ hidden_imports = [
     'greenlet',
     'fastapi',
     'starlette',
+    'cv2',
+    'numpy',
+    'PIL',
+    'PIL.Image',
+    'PIL.ImageDraw',
+    'PIL.ImageFont',
+    'core',
+    'core.stream',
+    'core.stream.rtsp_reader',
+    'core.stream.camera_manager',
+    'core.stream.overlay_engine',
+    'core.roi.roi_manager',
+    'backend',
+    'backend.api',
+    'backend.api.cameras',
+    'backend.api.analytics',
+    'backend.api.export',
+    'backend.api.websocket',
+    'backend.api.onvif',
+    'backend.db.database',
+    'backend.db.repository',
+    'scripts.demo_simulator',
 ]
 
 a = Analysis(

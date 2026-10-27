@@ -1,0 +1,33 @@
+{
+  "venue_01": {
+    "id": "venue_01",
+    "name": "科技创新主展厅 (A馆)",
+    "description": "主会展核心展示区，包含AI体验与数字人交互展台",
+    "entry_cameras": [
+      "cam_001"
+    ],
+    "exit_cameras": [
+      "cam_003"
+    ],
+    "zones": [
+      "展台A",
+      "入口迎宾区"
+    ],
+    "capacity": 200
+  },
+  "venue_02": {
+    "id": "venue_02",
+    "name": "智能工业数字展厅 (B馆)",
+    "description": "智能制造与高端装备专区",
+    "entry_cameras": [
+      "cam_002"
+    ],
+    "exit_cameras": [
+      "cam_003"
+    ],
+    "zones": [
+      "展台B"
+    ],
+    "capacity": 150
+  }
+}
