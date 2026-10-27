@@ -3,6 +3,15 @@ name: Docker Build & Publish
 on:
   push:
     branches: [main, master]
+    paths:
+      - "backend/**"
+      - "core/**"
+      - "configs/**"
+      - "docker/**"
+      - "frontend/**"
+      - "models/**"
+      - "pyproject.toml"
+      - ".github/workflows/docker-publish.yml"
     tags: ["v*"]
   workflow_dispatch:
 
@@ -18,6 +27,8 @@ jobs:
   build-cpu:
     name: 构建 CPU 版镜像 (OpenVINO)
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+
 
     steps:
       - name: Checkout
@@ -49,6 +60,8 @@ jobs:
   build-gpu:
     name: 构建 GPU 版镜像 (CUDA)
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+
 
     steps:
       - name: Checkout
