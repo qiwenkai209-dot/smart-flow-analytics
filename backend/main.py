@@ -4,13 +4,16 @@ FastAPI 主入口
 - 启动时初始化数据库、加载摄像头配置
 - 管理 Pipeline Orchestrator 生命周期
 """
-import os
 import logging
+import os
+import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from .api import cameras, analytics, export, websocket, onvif
+from .api import analytics, cameras, export, onvif, websocket
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -156,10 +159,8 @@ async def pipeline_stats():
 
 
 # ── 托管前端静态资源（一体化可执行软件支持） ─────────────────────────────
-import sys
-from fastapi.responses import FileResponse
-
 if getattr(sys, "frozen", False):
+
     base_dir = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
     frontend_dist = os.path.join(base_dir, "frontend", "dist")
 else:

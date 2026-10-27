@@ -3,12 +3,16 @@
 已对接真实数据库查询层（FlowRepository）
 兼容数据库未连接时返回演示数据
 """
-from fastapi import APIRouter, Query, HTTPException
-from typing import Optional, Dict, List, Any
 from datetime import datetime
+import json
 import logging
+import os
+from typing import Dict, List, Optional
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 
 from ..db.repository import FlowRepository
+
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -100,12 +104,8 @@ async def get_timeseries(
 
 
 # ─── 展厅出入规划与人数计算引擎 ──────────────────────────────────────────
-import os
-import json
-from pydantic import BaseModel, Field
-from typing import List
-
 VENUE_CONFIG_FILE = "configs/venues.json"
+
 
 class VenuePlanRequest(BaseModel):
     id: str = Field(..., description="展厅唯一标识")

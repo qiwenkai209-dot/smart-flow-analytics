@@ -11,7 +11,7 @@ from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field
 
-from core.stream.rtsp_reader import CameraConfig, test_stream_connection, build_brand_rtsp_url
+from core.stream.rtsp_reader import CameraConfig, build_brand_rtsp_url
 from core.stream.overlay_engine import generate_realistic_scene, apply_algorithm_overlay, frame_to_base64_jpeg
 
 router = APIRouter()
@@ -214,18 +214,39 @@ async def preview_analyze(req: PreviewAnalyzeRequest):
     frame = None
     real_stream = False
 
-    # 若提供了 RTSP，尝试抓取真实帧
+    # 若提供了 RTSP，尝试抓取真实帧（先快速探测端口连通性，避免不可达 IP 阻塞）
     if rtsp_url:
-        import cv2
-        cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
-        cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 2500)
-        cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 2000)
-        if cap.isOpened():
-            ret, captured = cap.read()
-            if ret and captured is not None and captured.size > 0:
-                frame = captured
-                real_stream = True
-            cap.release()
+        import socket
+        import urllib.parse
+        can_connect = False
+        try:
+            parsed = urllib.parse.urlparse(rtsp_url)
+            host = parsed.hostname or (req.ip if req.ip else None)
+            port = parsed.port or (req.port if req.port else 554)
+            if host:
+                with socket.create_connection((host, int(port)), timeout=0.3):
+                    can_connect = True
+        except Exception:
+            can_connect = False
+
+        if can_connect:
+            import os
+            os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|stimeout;1000000"
+            try:
+                import cv2
+                cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
+                cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 1500)
+                cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 1000)
+                if cap.isOpened():
+                    ret, captured = cap.read()
+                    if ret and captured is not None and captured.size > 0:
+                        frame = captured
+                        real_stream = True
+                    cap.release()
+            except Exception as e:
+                logger.warning(f"RTSP 抓取预览帧失败: {e}")
+
+
 
     # 若未接通真实摄像头，生成展厅监控场景底图
     if frame is None:

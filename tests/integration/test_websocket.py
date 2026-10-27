@@ -1,9 +1,7 @@
 """
 集成测试：WebSocket 实时推流接口
 """
-import pytest
 import json
-import asyncio
 from fastapi.testclient import TestClient
 from backend.main import app
 

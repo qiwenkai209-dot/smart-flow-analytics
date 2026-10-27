@@ -4,7 +4,7 @@ ByteTrack 多目标追踪器封装
 """
 import logging
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import List, Optional
 import numpy as np
 
 logger = logging.getLogger(__name__)

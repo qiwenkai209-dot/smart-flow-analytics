@@ -126,22 +126,27 @@ async def get_device_channels(req: OnvifConnectRequest):
         from core.stream.onvif_discovery import OnvifClient
         client = OnvifClient(addr, req.username, req.password)
         connected = await client.connect()
-        if connected:
-            channels = await client.get_channels()
-            if channels:
-                return [
-                    ChannelResponse(
-                        token=ch.token,
-                        channel_name=ch.channel_name,
-                        width=ch.width,
-                        height=ch.height,
-                        encoding=ch.encoding,
-                        rtsp_url=ch.rtsp_url,
-                    )
-                    for ch in channels
-                ]
+        if not connected:
+            raise HTTPException(status_code=400, detail="ONVIF 连接失败，请检查网络或认证信息")
+
+        channels = await client.get_channels()
+        if channels:
+            return [
+                ChannelResponse(
+                    token=ch.token,
+                    channel_name=ch.channel_name,
+                    width=ch.width,
+                    height=ch.height,
+                    encoding=ch.encoding,
+                    rtsp_url=ch.rtsp_url,
+                )
+                for ch in channels
+            ]
+    except HTTPException:
+        raise
     except Exception as e:
         logger.warning(f"ONVIF 协议直连通道获取失败，启动智能回退生成通道: {e}")
+
 
     # 回退生成主码流与子码流通道，确保新增摄像头 100% 可导入
     auth = f"{req.username}:{req.password}@" if req.username or req.password else ""

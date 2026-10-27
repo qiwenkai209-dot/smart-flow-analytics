@@ -1,6 +1,6 @@
 import logging
 import threading
-from typing import Dict, Optional, List, Any
+from typing import Dict, Optional, List
 from .rtsp_reader import RTSPReader, CameraConfig
 
 logger = logging.getLogger(__name__)
@@ -89,7 +89,8 @@ class CameraManager:
     def persist_config(self):
         """将当前摄像头及固化展台写入 YAML 配置文件"""
         try:
-            import os, yaml
+            import os
+            import yaml
             os.makedirs("configs", exist_ok=True)
             data = {"cameras": []}
             for cam in self._cameras.values():

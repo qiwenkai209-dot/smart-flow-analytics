@@ -97,7 +97,9 @@ class RTSPReader:
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._lock = threading.Lock()
+        self._stop_event = threading.Event()
         self.is_connected = False
+
         self.fps_actual = 0.0
         self._frame_count = 0
         self._last_fps_time = time.time()
@@ -107,10 +109,32 @@ class RTSPReader:
     def _connect(self) -> bool:
         url = self.config.rtsp_url
         logger.info(f"[{self.config.id}] 正在连接: {url}")
+
+        # 快速连通性嗅探（避免离线不可达地址阻塞 VideoCapture）
+        import socket
+        import urllib.parse
+        can_connect = False
+        try:
+            parsed = urllib.parse.urlparse(url)
+            host = parsed.hostname
+            port = parsed.port or 554
+            if host:
+                with socket.create_connection((host, int(port)), timeout=0.3):
+                    can_connect = True
+        except Exception:
+            can_connect = False
+
+        if not can_connect:
+            logger.warning(f"[{self.config.id}] 无法连通 RTSP 端口，进入离线占位模式")
+            return False
+
+        import os
+        os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|stimeout;1000000"
         cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 5000)
-        cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 4000)
+        cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 2000)
+        cap.set(cv2.CAP_PROP_READ_TIMEOUT_MSEC, 2000)
+
 
         if cap.isOpened():
             with self._lock:
@@ -141,8 +165,10 @@ class RTSPReader:
         while self._running:
             if not self.is_connected:
                 if not self._connect():
-                    time.sleep(self.config.reconnect_interval)
+                    if self._stop_event.wait(timeout=self.config.reconnect_interval):
+                        break
                     continue
+
 
             now = time.time()
             if now - last_frame_time < frame_interval:
@@ -183,16 +209,19 @@ class RTSPReader:
 
     def start(self):
         self._running = True
+        self._stop_event.clear()
         self._thread = threading.Thread(target=self._read_loop, daemon=True, name=f"rtsp-{self.config.id}")
         self._thread.start()
         logger.info(f"[{self.config.id}] 取流线程启动")
 
     def stop(self):
         self._running = False
+        self._stop_event.set()
         self._release()
         if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=3.0)
+            self._thread.join(timeout=1.0)
         logger.info(f"[{self.config.id}] 取流线程停止")
+
 
     def read(self, timeout: float = 1.0) -> Optional[np.ndarray]:
         try:

@@ -2,9 +2,8 @@
 单元测试：跨摄像头 Re-ID 去重与全局 ID 映射
 """
 import time
-import pytest
 import numpy as np
-from core.reid.cross_cam_tracker import ReIDModel, CrossCameraTracker, PersonFeature
+from core.reid.cross_cam_tracker import ReIDModel, CrossCameraTracker
 
 
 class DummyReIDModel(ReIDModel):

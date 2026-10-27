@@ -6,10 +6,15 @@ on:
     tags: ["v*.*.*"]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-cpu:
     name: 构建 CPU 版镜像 (OpenVINO)
     runs-on: ubuntu-latest
+
 
     steps:
       - name: Checkout

@@ -6,8 +6,8 @@
 import logging
 import time
 import threading
-from dataclasses import dataclass, field
-from typing import Optional, List, Callable
+from dataclasses import dataclass
+from typing import Optional, Callable
 import numpy as np
 import cv2
 
@@ -16,7 +16,7 @@ from .detect.detector import PersonDetector
 from .detect.tracker import ByteTracker
 from .attribute.attribute_model import AttributeModel, AttributeScheduler
 from .reid.cross_cam_tracker import CrossCameraTracker
-from .roi.roi_manager import ROIManager, DwellTracker, DwellRecord
+from .roi.roi_manager import ROIManager, DwellTracker
 
 logger = logging.getLogger(__name__)
 

@@ -49,12 +49,11 @@ class OnvifDiscovery:
         Returns: OnvifDevice 列表
         """
         devices: List[OnvifDevice] = []
-
         try:
-            from wsdiscovery import WSDiscovery
-            from wsdiscovery import QName, Scope
+            from wsdiscovery import QName, WSDiscovery
 
             wsd = WSDiscovery()
+
             wsd.start()
 
             # 搜索 ONVIF 设备类型

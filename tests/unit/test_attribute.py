@@ -1,9 +1,8 @@
 """
 单元测试：PP-Human 属性识别与单次触发调度器
 """
-import pytest
 import numpy as np
-from core.attribute.attribute_model import AttributeModel, AttributeScheduler, AttributeResult
+from core.attribute.attribute_model import AttributeModel, AttributeScheduler
 
 
 def test_attribute_model_too_small_crop_filtered():

@@ -1,7 +1,6 @@
 """
 单元测试：PipelineOrchestrator 多路管线协调器
 """
-import pytest
 from core.orchestrator import PipelineOrchestrator
 from core.stream.rtsp_reader import CameraConfig
 from core.roi.roi_manager import ROIConfig

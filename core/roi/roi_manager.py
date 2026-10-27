@@ -6,8 +6,7 @@ ROI 多边形区域管理 + 驻留时长计时器
 """
 import time
 import logging
-import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Dict, Tuple, Optional
 import numpy as np
 import cv2

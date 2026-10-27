@@ -35,10 +35,10 @@ def main():
 
     # 处理打包后的路径
     if getattr(sys, "frozen", False):
-        base_dir = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
         os.chdir(os.path.dirname(sys.executable))
     else:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 
     # 导入 FastAPI app
     from backend.main import app

@@ -4,13 +4,12 @@
 兼容未安装 TimescaleDB 时降级为标准 PostgreSQL 查询
 """
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
-from sqlalchemy import select, func, text, and_, case, extract
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func, text, and_, case
 
-from .database import AsyncSessionLocal, FlowEventRecord, HourlyFlowStat
+from .database import AsyncSessionLocal, FlowEventRecord
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +169,7 @@ class FlowRepository:
         if not end_time:
             end_time = datetime.now(timezone.utc)
 
-        cam_filter = f"AND camera_id = :cam" if camera_id else ""
+        cam_filter = "AND camera_id = :cam" if camera_id else ""
 
         # 先尝试 TimescaleDB time_bucket
         try:

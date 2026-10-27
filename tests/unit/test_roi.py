@@ -1,9 +1,7 @@
 """
 单元测试：ROI 多边形驻留逻辑
 """
-import time
 import pytest
-import numpy as np
 from core.roi.roi_manager import ROIConfig, ROIManager, DwellTracker
 
 

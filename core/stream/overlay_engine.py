@@ -4,7 +4,6 @@
 根据所勾选的分类功能（出入客流、男女性别、年龄分析、展台驻留）
 以及划线规划的多边形区域，实时叠加模型算法参数可视化。
 """
-import time
 import base64
 import logging
 from typing import List, Dict, Any, Tuple, Optional
@@ -313,9 +312,8 @@ def apply_algorithm_overlay(
     pil_img = Image.fromarray(vis_rgb)
     draw = ImageDraw.Draw(pil_img)
 
-    font_title = _get_font(18)
     font_badge = _get_font(13)
-    font_micro = _get_font(11)
+
 
     # 3.1 渲染展台 ROI 名称标牌
     if has_dwell or rois:
@@ -394,11 +392,17 @@ def apply_algorithm_overlay(
 
     # 3.4 顶部状态指示栏（叠加算法模型开启状态）
     active_labels = []
-    if has_in_out: active_labels.append("🚪 进出客流算法")
-    if has_gender: active_labels.append("♂♀ 性别识别算法")
-    if has_age: active_labels.append("🎂 年龄体态算法")
-    if has_dwell: active_labels.append("⏱️ 展台驻留算法")
-    if not active_labels: active_labels.append("基础视频流")
+    if has_in_out:
+        active_labels.append("🚪 进出客流算法")
+    if has_gender:
+        active_labels.append("♂♀ 性别识别算法")
+    if has_age:
+        active_labels.append("🎂 年龄体态算法")
+    if has_dwell:
+        active_labels.append("⏱️ 展台驻留算法")
+    if not active_labels:
+        active_labels.append("基础视频流")
+
 
     status_str = f"⚡ 模型算法实时运行中: {' + '.join(active_labels)} | {camera_name} ({camera_id})"
     s_box = draw.textbbox((16, 16), status_str, font=font_badge)

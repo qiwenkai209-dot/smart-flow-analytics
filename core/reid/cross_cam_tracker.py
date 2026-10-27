@@ -8,7 +8,7 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -40,14 +40,15 @@ class ReIDModel:
 
     def _load_model(self):
         try:
-            import torch
-            # FastReID 标准加载方式
-            # 实际部署时替换为正式 FastReID 模型加载代码
+            import importlib
+            if importlib.util.find_spec("torch") is None:
+                raise ImportError
             logger.info(f"Re-ID 模型加载: {self.model_path} @ {self.device}")
             # self._model = ...
             logger.warning("Re-ID 模型占位符已初始化，请替换为真实 FastReID 模型")
         except ImportError:
             logger.error("请安装 torch: pip install torch")
+
 
     def extract_feature(self, crop: np.ndarray) -> Optional[np.ndarray]:
         """
