@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main, master]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+
 jobs:
   test:
     name: 单元测试 & 代码检查
