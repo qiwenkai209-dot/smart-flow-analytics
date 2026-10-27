@@ -1,0 +1,172 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: pipeline-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  # ── 1. 代码质量与全量自动化测试（所有分支推送必跑） ─────────────
+  test:
+    name: 质量检查与自动化测试
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: 安装 Poetry
+        run: pip install poetry
+
+      - name: 配置 Poetry 虚拟环境
+        run: poetry config virtualenvs.in-project true
+
+      - name: 缓存依赖
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+
+      - name: 安装依赖
+        run: poetry install --with dev --no-root
+
+      - name: 代码格式检查 (ruff)
+        run: poetry run ruff check .
+
+      - name: 类型检查 (mypy)
+        run: poetry run mypy core/ backend/ --ignore-missing-imports
+
+      - name: 单元测试 (pytest)
+        run: poetry run pytest tests/unit/ -v --tb=short
+
+      - name: 集成测试 (pytest)
+        run: poetry run pytest tests/integration/ -v --tb=short
+
+  # ── 2. Windows 独立程序便携包构建发布（Tag 或手动触发） ─────────
+  release-windows:
+    name: 构建 Windows 独立便携包
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 构建前端静态资源
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+          cd ..
+
+      - name: 设置 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 安装打包与运行依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller "numpy<2" "pandas<2.3" openpyxl shapely pydantic pydantic-settings pyyaml loguru fastapi uvicorn websockets sqlalchemy asyncpg opencv-python Pillow httpx
+
+      - name: 使用 PyInstaller 打包
+        run: |
+          pyinstaller smart_flow.spec --noconfirm
+
+      - name: 复制启动脚本和说明到打包目录
+        run: |
+          Get-ChildItem -Path "*.bat" | Copy-Item -Destination "dist/SmartFlowAnalytics/" -Force
+          Copy-Item "README.md" -Destination "dist/SmartFlowAnalytics/" -Force
+
+      - name: 压缩打包产物
+        run: |
+          Compress-Archive -Path "dist/SmartFlowAnalytics" -DestinationPath "SmartFlowAnalytics-Windows-x64.zip" -Force
+
+      - name: 发布 Release 并上传可执行包
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: SmartFlowAnalytics-Windows-x64.zip
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+
+      - name: 上传构建产物工件 (Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartFlowAnalytics-Windows-x64
+          path: SmartFlowAnalytics-Windows-x64.zip
+          retention-days: 14
+
+  # ── 3. Docker 容器镜像多阶段构建发布（Tag 或手动触发） ─────────
+  docker-publish:
+    name: 构建并发布 Docker 镜像 (${{ matrix.target }})
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    strategy:
+      matrix:
+        include:
+          - target: CPU-OpenVINO
+            file: docker/Dockerfile.cpu
+            tag_suffix: -cpu
+          - target: GPU-CUDA
+            file: docker/Dockerfile.gpu
+            tag_suffix: -gpu
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 登录 GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 构建并推送 Docker 镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest${{ matrix.tag_suffix }}
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}${{ matrix.tag_suffix }}
+            ghcr.io/${{ github.repository }}:${{ github.sha }}${{ matrix.tag_suffix }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
