@@ -1,6 +1,28 @@
 <template>
   <div class="dashboard">
 
+    <!-- ── 顶部控制条：关联摄像头选择与自定义管理入口 ────────── -->
+    <div class="dashboard-ctrl-bar">
+      <div class="ctrl-left">
+        <span class="ctrl-title">🎯 智慧展厅实时态势看板</span>
+        <span class="ctrl-desc">核算摄像头关联过滤:</span>
+        <select v-model="selectedCamFilter" class="input cam-filter-select" @change="onCamFilterChange">
+          <option value="">全部关联摄像头 (全域核算)</option>
+          <option v-for="c in cameraList" :key="c.id" :value="c.id">
+            📹 {{ c.name }} ({{ c.id }})
+          </option>
+        </select>
+      </div>
+      <div class="ctrl-right">
+        <router-link to="/zones" class="btn btn-secondary btn-sm">
+          📐 自定义展台与关联摄像头
+        </router-link>
+        <router-link to="/cameras" class="btn btn-primary btn-sm">
+          📹 摄像头私有协议配置
+        </router-link>
+      </div>
+    </div>
+
     <!-- ── 顶部 KPI 指标卡 ──────────────────── -->
     <section class="kpi-row">
       <div class="card kpi-card" v-for="kpi in kpiCards" :key="kpi.label">
@@ -81,6 +103,24 @@ import axios from 'axios'
 
 const API = import.meta.env.VITE_API_URL || ''
 
+// ── 关联摄像头过滤 ─────────────────────────────
+const selectedCamFilter = ref('')
+const cameraList = ref([])
+
+async function loadCameraList() {
+  try {
+    const res = await axios.get(`${API}/api/cameras/`)
+    cameraList.value = res.data || []
+  } catch {
+    cameraList.value = []
+  }
+}
+
+function onCamFilterChange() {
+  loadTimeseries()
+  loadDwellStats()
+}
+
 // ── 实时数据 ───────────────────────────────────
 const { data, connected } = useRealtimeData()
 
@@ -88,7 +128,7 @@ const kpiCards = computed(() => [
   {
     icon: '🚶',
     value: data.value.current_in_venue,
-    label: '当前在场人数',
+    label: selectedCamFilter.value ? '关联摄像头在场人数' : '全域当前在场人数',
     trend: '+3 较昨日',
     trendClass: 'trend-up',
   },
@@ -147,7 +187,8 @@ const C = {
 
 // ── 时序折线图 ─────────────────────────────────
 async function loadTimeseries() {
-  const res = await axios.get(`${API}/api/analytics/timeseries`).catch(() => ({ data: { series: [] } }))
+  const url = `${API}/api/analytics/timeseries` + (selectedCamFilter.value ? `?camera_id=${selectedCamFilter.value}` : '')
+  const res = await axios.get(url).catch(() => ({ data: { series: [] } }))
   const series = res.data.series || []
   setLine({
     backgroundColor: 'transparent',
@@ -243,6 +284,7 @@ async function loadDwellStats() {
 }
 
 onMounted(() => {
+  loadCameraList()
   loadTimeseries()
   loadDwellStats()
   // 每60秒刷新一次静态图表数据
@@ -255,6 +297,44 @@ onMounted(() => {
   height: 100%; overflow-y: auto;
   padding: 16px 20px;
   display: flex; flex-direction: column; gap: 14px;
+}
+
+/* ── 顶部控制栏 ──────────────────────── */
+.dashboard-ctrl-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ctrl-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ctrl-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+.ctrl-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.cam-filter-select {
+  padding: 6px 12px;
+  font-size: 12px;
+  min-width: 220px;
+}
+.ctrl-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* ── KPI 行 ──────────────────────────── */

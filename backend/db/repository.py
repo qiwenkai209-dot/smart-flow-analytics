@@ -32,7 +32,11 @@ class FlowRepository:
         async with AsyncSessionLocal() as session:
             filters = []
             if camera_id:
-                filters.append(FlowEventRecord.camera_id == camera_id)
+                if "," in camera_id:
+                    cams = [c.strip() for c in camera_id.split(",") if c.strip()]
+                    filters.append(FlowEventRecord.camera_id.in_(cams))
+                else:
+                    filters.append(FlowEventRecord.camera_id == camera_id)
             if start_time:
                 filters.append(FlowEventRecord.event_time >= start_time)
             if end_time:
@@ -103,7 +107,11 @@ class FlowRepository:
         async with AsyncSessionLocal() as session:
             filters = [FlowEventRecord.event_type == "dwell_complete"]
             if camera_id:
-                filters.append(FlowEventRecord.camera_id == camera_id)
+                if "," in camera_id:
+                    cams = [c.strip() for c in camera_id.split(",") if c.strip()]
+                    filters.append(FlowEventRecord.camera_id.in_(cams))
+                else:
+                    filters.append(FlowEventRecord.camera_id == camera_id)
             if start_time:
                 filters.append(FlowEventRecord.event_time >= start_time)
             if end_time:
