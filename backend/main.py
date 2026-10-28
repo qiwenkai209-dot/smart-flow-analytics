@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from .api import analytics, cameras, export, onvif, websocket
+from .api import analytics, cameras, devices, export, onvif, websocket
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s - %(message)s")
@@ -132,6 +132,7 @@ app.add_middleware(
 
 # ── 路由注册 ──────────────────────────────────────────────────────────
 app.include_router(cameras.router,   prefix="/api/cameras",   tags=["摄像头管理"])
+app.include_router(devices.router,   prefix="/api/devices",   tags=["设备与分析配置"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["客流统计"])
 app.include_router(export.router,    prefix="/api/export",    tags=["报表导出"])
 app.include_router(onvif.router,     prefix="/api/onvif",     tags=["ONVIF 设备发现"])

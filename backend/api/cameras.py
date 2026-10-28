@@ -200,6 +200,14 @@ async def preview_analyze(req: PreviewAnalyzeRequest):
     供前端在增添摄像头及划线圈出区域时即时固化检验。
     """
     rtsp_url = (req.rtsp_url or "").strip()
+    # 若未直接传 rtsp_url 但提供了 camera_id，尝试从已注册摄像头中提取配置
+    if not rtsp_url and req.camera_id:
+        existing_cam = get_manager().get_camera(req.camera_id)
+        if existing_cam and getattr(existing_cam, "config", None):
+            rtsp_url = existing_cam.config.rtsp_url or ""
+            if not req.name or req.name == "摄像头预览":
+                req.name = existing_cam.config.name
+
     if not rtsp_url and req.ip:
         rtsp_url = build_brand_rtsp_url(
             brand=req.brand,

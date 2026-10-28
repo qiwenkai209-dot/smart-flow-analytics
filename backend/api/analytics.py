@@ -78,25 +78,51 @@ async def get_dwell_stats(
 @router.get("/timeseries", summary="获取客流时间序列数据（折线图）")
 async def get_timeseries(
     camera_id: Optional[str] = Query(None),
-    interval: str = Query("1h", description="时间粒度：5m / 15m / 1h / 1d"),
+    interval: str = Query("10m", description="时间粒度：5m / 10m / 15m / 1h / 1d"),
     start_time: Optional[datetime] = Query(None),
     end_time: Optional[datetime] = Query(None),
 ):
-    """返回每个时间粒度的进出人数，用于大屏折线图"""
-    fallback = {
-        "interval": interval,
-        "series": [
-            {"time": "09:00", "in": 12, "out": 5},
-            {"time": "10:00", "in": 28, "out": 18},
-            {"time": "11:00", "in": 35, "out": 29},
-            {"time": "12:00", "in": 22, "out": 20},
-            {"time": "13:00", "in": 15, "out": 12},
-            {"time": "14:00", "in": 42, "out": 35},
-            {"time": "15:00", "in": 38, "out": 30},
-            {"time": "16:00", "in": 25, "out": 22},
-            {"time": "17:00", "in": 18, "out": 16},
-        ],
-    }
+    """返回每个时间粒度的进出人数与客流走势，用于大屏折线图"""
+    if interval in ("10m", "10min"):
+        # 10 分钟粒度标准演示走势（从 09:00 开始每 10 分钟一个点）
+        points = [
+            ("09:00", 6, 2), ("09:10", 9, 3), ("09:20", 14, 4), ("09:30", 18, 6),
+            ("09:40", 22, 9), ("09:50", 25, 11), ("10:00", 29, 13), ("10:10", 32, 16),
+            ("10:20", 35, 18), ("10:30", 38, 20), ("10:40", 34, 21), ("10:50", 31, 23),
+            ("11:00", 36, 25), ("11:10", 42, 28), ("11:20", 48, 32), ("11:30", 45, 30),
+            ("11:40", 39, 29), ("11:50", 32, 26), ("12:00", 26, 22), ("12:10", 22, 19),
+            ("12:20", 25, 18), ("12:30", 29, 21), ("12:40", 33, 23), ("12:50", 38, 25),
+            ("13:00", 41, 27), ("13:10", 44, 28), ("13:20", 49, 31), ("13:30", 52, 33),
+            ("13:40", 55, 36), ("13:50", 58, 38), ("14:00", 62, 40), ("14:10", 65, 42),
+            ("14:20", 61, 41), ("14:30", 57, 39), ("14:40", 53, 38), ("14:50", 48, 35),
+            ("15:00", 44, 33), ("15:10", 40, 31), ("15:20", 36, 29), ("15:30", 32, 27),
+            ("15:40", 28, 24), ("15:50", 25, 22), ("16:00", 21, 19), ("16:10", 18, 16),
+            ("16:20", 15, 14), ("16:30", 12, 12), ("16:40", 10, 10), ("16:50", 8, 8),
+            ("17:00", 6, 6)
+        ]
+        series_data = [{"time": t, "in": i, "out": o, "count": i} for t, i, o in points]
+        fallback = {
+            "interval": interval,
+            "series": series_data,
+            "timeseries": series_data,
+        }
+    else:
+        series_data = [
+            {"time": "09:00", "in": 12, "out": 5, "count": 12},
+            {"time": "10:00", "in": 28, "out": 18, "count": 28},
+            {"time": "11:00", "in": 35, "out": 29, "count": 35},
+            {"time": "12:00", "in": 22, "out": 20, "count": 22},
+            {"time": "13:00", "in": 15, "out": 12, "count": 15},
+            {"time": "14:00", "in": 42, "out": 35, "count": 42},
+            {"time": "15:00", "in": 38, "out": 30, "count": 38},
+            {"time": "16:00", "in": 25, "out": 22, "count": 25},
+            {"time": "17:00", "in": 18, "out": 16, "count": 18},
+        ]
+        fallback = {
+            "interval": interval,
+            "series": series_data,
+            "timeseries": series_data,
+        }
     return await _safe_query(
         lambda: FlowRepository.get_timeseries(camera_id, interval, start_time, end_time),
         fallback,

@@ -15,7 +15,7 @@
       <nav class="topbar-nav">
         <router-link to="/"        class="nav-item">📊 实时大屏</router-link>
         <router-link to="/zones"   class="nav-item">📐 展台分析</router-link>
-        <router-link to="/cameras" class="nav-item">📹 摄像头管理</router-link>
+        <router-link to="/cameras" class="nav-item">⚙️ 配置</router-link>
       </nav>
 
       <div class="topbar-status">

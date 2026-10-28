@@ -1,0 +1,10 @@
+{
+  "model_name": "yolov8n-flow.onnx",
+  "conf_threshold": 0.52,
+  "iou_threshold": 0.5,
+  "skip_frames": 1,
+  "enable_reid": true,
+  "reid_max_age": 30,
+  "min_dwell_seconds": 5.0,
+  "enable_gpu_accel": false
+}

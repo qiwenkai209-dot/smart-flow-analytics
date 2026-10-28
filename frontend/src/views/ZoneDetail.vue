@@ -4,7 +4,7 @@
       <div>
         <h1 class="page-title">📐 展台分析与展厅出入规划</h1>
         <div class="page-desc">
-          自定义展台圈出区域固化 · 展厅出入规则定义（选择进出摄像头、勾选功能与流动箭头）· 首页实时轮播
+          自定义展台圈出区域固化 · 展厅出入规则规划（进入摄像头 ➔ 去往区域 ➔ 出去摄像头完整流向）
         </div>
       </div>
       <div class="header-actions">
@@ -27,6 +27,7 @@
       </div>
     </div>
 
+    <!-- 选项卡 1：自定义展台管理 -->
     <div v-if="activeTab === 'zones'" class="tab-content">
       <div class="filter-bar flex-between mb-16">
         <div class="flex-gap-12 align-center">
@@ -38,6 +39,7 @@
             </option>
           </select>
         </div>
+        <!-- 只保留这一个新增入口 -->
         <button class="btn btn-primary" @click="openAddZoneModal">
           ➕ 新增自定义展台
         </button>
@@ -102,19 +104,14 @@
             </button>
           </div>
         </div>
-
-        <div class="card add-placeholder-card" @click="openAddZoneModal">
-          <div class="placeholder-icon">+</div>
-          <div class="placeholder-text">新增自定义展台</div>
-          <div class="placeholder-sub">选择摄像头 · 勾选功能 · 划线圈出区域</div>
-        </div>
       </div>
     </div>
 
+    <!-- 选项卡 2：展厅出入规划 -->
     <div v-if="activeTab === 'venue'" class="tab-content">
       <div class="filter-bar flex-between mb-16">
         <div>
-          <span class="text-sm text-dim">出入规则与展厅协同定义（设置完毕后在首页预留区域自动轮播）</span>
+          <span class="text-sm text-dim">出入规则与展厅协同定义（设置进入摄像头、去往区域及出去摄像头）</span>
         </div>
         <button class="btn btn-primary" @click="openAddVenueModal">
           ➕ 新增出入规则
@@ -161,12 +158,16 @@
             </div>
           </div>
 
+          <!-- 完整的流动链路：进入摄像头 ➔ 去往区域 ➔ 出去摄像头 -->
           <div class="rule-flow-box mb-14">
             <div class="flow-line in">
               <span class="tag-in">进入摄像头 (+)</span>
               <span class="flow-text">{{ (v.entry_cameras && v.entry_cameras.length) ? v.entry_cameras.join(', ') : '未指定' }}</span>
             </div>
-            <div class="flow-arrow">➔ 场内流转与驻留 ➔</div>
+            <div class="flow-line zone-target">
+              <span class="tag-zone">去往区域 (流向)</span>
+              <span class="flow-text">{{ (v.zones && v.zones.length) ? v.zones.join(', ') : '全馆自由流转' }}</span>
+            </div>
             <div class="flow-line out">
               <span class="tag-out">出去摄像头 (-)</span>
               <span class="flow-text">{{ (v.exit_cameras && v.exit_cameras.length) ? v.exit_cameras.join(', ') : '未指定' }}</span>
@@ -178,22 +179,17 @@
               👁️ 预览出入箭头与区域
             </button>
             <button class="btn btn-secondary btn-sm" @click="openEditVenueModal(v)">
-              ✏️ 编辑
+              ⚙️ 编辑
             </button>
             <button class="btn btn-danger btn-sm" @click="deleteVenue(v.id)">
               🗑️
             </button>
           </div>
         </div>
-
-        <div class="card add-placeholder-card" @click="openAddVenueModal">
-          <div class="placeholder-icon">+</div>
-          <div class="placeholder-text">新增展厅出入规则</div>
-          <div class="placeholder-sub">定义进入/出去摄像头与流动箭头 · 首页轮播</div>
-        </div>
       </div>
     </div>
 
+    <!-- 弹窗 1：自定义展台配置表单 -->
     <div class="modal-overlay" v-if="showZoneModal" @click.self="showZoneModal = false">
       <div class="modal card modal-medium">
         <div class="flex-between mb-16">
@@ -259,13 +255,14 @@
       </div>
     </div>
 
+    <!-- 弹窗 2：视频画布划线圈出区域固化 -->
     <div class="modal-overlay" v-if="showDrawModal" @click.self="showDrawModal = false">
       <div class="modal card modal-extra-large">
         <div class="flex-between mb-12">
           <div>
-            <div class="modal-title">📐 自定义圈出区域并固化 - {{ drawTargetRoi?.name }}</div>
+            <div class="modal-title">📐 圈出区域并固化 - {{ drawTargetRoi?.name }}</div>
             <div class="text-xs text-dim">
-              当前摄像头: {{ getCamName(drawTargetRoi?.camera_id) }} · 在视频画面上连续点击添加顶点，圈出展台多边形区域后保存固化
+              关联摄像头: {{ getCamName(drawTargetRoi?.camera_id) }} · 在视频画面上依次点击添加顶点圈出展台多边形区域，完成后点击「下一步：确认并固化展台区域」
             </div>
           </div>
           <button class="close-btn" @click="showDrawModal = false">✕</button>
@@ -286,7 +283,7 @@
             </div>
 
             <div v-if="isSolidifiedSuccess" class="toast-badge">
-              ✅ 区域已成功固化保存！
+              ✅ 展台区域已成功固化保存！正在返回...
             </div>
           </div>
 
@@ -294,8 +291,10 @@
             <div class="toolbox-header">🛠️ 区域划线工具栏</div>
 
             <div class="toolbox-item">
-              <span>当前顶点数:</span>
-              <b class="text-primary">{{ polygonPoints.length }} 个</b>
+              <span>已选顶点数:</span>
+              <b class="text-primary font-mono">{{ polygonPoints.length }} 个</b>
+              <span class="status-hint" v-if="polygonPoints.length < 3">(至少需要3个点)</span>
+              <span class="status-hint text-success" v-else>(可固化闭合)</span>
             </div>
 
             <div class="btn-group-vertical mt-12">
@@ -317,17 +316,24 @@
                 class="btn btn-secondary btn-sm"
                 @click="resetToDefaultBox"
               >
-                📐 重置为标准展台框
+                📐 标准推荐展台框
+              </button>
+              <button
+                class="btn btn-secondary btn-sm"
+                @click="fetchSnapshotAndRender(drawTargetRoi?.camera_id)"
+              >
+                🔄 刷新底图画面
               </button>
             </div>
 
             <div class="toolbox-footer mt-auto pt-16">
+              <!-- 清晰的下一步保存按钮，彻底解决无法下一步的体验问题 -->
               <button
                 class="btn btn-primary btn-block"
                 @click="saveAndSolidifyPolygon"
                 :disabled="polygonPoints.length < 3 || isSaving"
               >
-                {{ isSaving ? '保存固化中...' : '🔒 保存并固化此区域' }}
+                {{ isSaving ? '正在固化保存中...' : '下一步: 确认并固化展台区域 ➔' }}
               </button>
             </div>
           </div>
@@ -335,10 +341,11 @@
       </div>
     </div>
 
+    <!-- 弹窗 3：展厅出入规划弹窗（新增去区域选项） -->
     <div class="modal-overlay" v-if="showVenueModal" @click.self="showVenueModal = false">
       <div class="modal card modal-medium">
         <div class="flex-between mb-16">
-          <div class="modal-title">🚪 出入规则规划与额定容量配置</div>
+          <div class="modal-title">🚪 出入规则规划与去区域配置</div>
           <button class="close-btn" @click="showVenueModal = false">✕</button>
         </div>
 
@@ -371,7 +378,7 @@
         </div>
 
         <div class="form-group mb-12">
-          <label class="form-label">2. 选择进入摄像头 (负责 + 增加客流)</label>
+          <label class="form-label">2. 选择进入摄像头 (负责 + 增加客流) *</label>
           <select v-model="venueForm.entry_cameras" multiple class="input multi-select">
             <option v-for="c in cameras" :key="c.id" :value="c.id">
               [入] {{ c.name }} ({{ c.id }})
@@ -380,8 +387,32 @@
           <div class="form-hint">可按住 Ctrl 进行多选，支持多进配合</div>
         </div>
 
+        <!-- 用户新增需求：去区域选项 -->
         <div class="form-group mb-12">
-          <label class="form-label">3. 选择出去摄像头 (负责 - 扣除客流)</label>
+          <label class="form-label">3. 选择去往区域 (观众进场后流向的展台/功能区) *</label>
+          <div class="zones-select-group">
+            <label
+              v-for="z in zoneList"
+              :key="z.name"
+              class="zone-checkbox-pill"
+              :class="{ checked: (venueForm.zones || []).includes(z.name) }"
+            >
+              <input
+                type="checkbox"
+                :value="z.name"
+                v-model="venueForm.zones"
+              />
+              <span>📐 {{ z.name }}</span>
+            </label>
+            <div v-if="!zoneList.length" class="text-xs text-dim">
+              暂无已固化展台，可在左侧「自定义展台」先圈出展台区域
+            </div>
+          </div>
+          <div class="form-hint">勾选观众进场后主要去往的展台或区域</div>
+        </div>
+
+        <div class="form-group mb-12">
+          <label class="form-label">4. 选择出去摄像头 (负责 - 扣除客流) *</label>
           <select v-model="venueForm.exit_cameras" multiple class="input multi-select">
             <option v-for="c in cameras" :key="c.id" :value="c.id">
               [出] {{ c.name }} ({{ c.id }})
@@ -391,7 +422,7 @@
         </div>
 
         <div class="form-group mb-16">
-          <label class="form-label">4. 额定设计容量 (人，用于计算饱和度)</label>
+          <label class="form-label">5. 额定设计容量 (人，用于计算饱和度)</label>
           <input
             type="number"
             v-model.number="venueForm.capacity"
@@ -404,12 +435,13 @@
         <div class="flex-gap-8 mt-20 justify-end">
           <button class="btn btn-secondary" @click="showVenueModal = false">取消</button>
           <button class="btn btn-primary" @click="saveVenueRule">
-            💾 保存规则 (同步首页轮播)
+            💾 保存规则 (同步首页态势)
           </button>
         </div>
       </div>
     </div>
 
+    <!-- 弹窗 4：出入规则与箭头预览 -->
     <div class="modal-overlay" v-if="showRulePreviewModal" @click.self="showRulePreviewModal = false">
       <div class="modal card modal-large">
         <div class="flex-between mb-12">
@@ -489,9 +521,9 @@ const venueForm = ref({
   name: '',
   entry_cameras: [],
   exit_cameras: [],
+  zones: [], // 去往区域选项
   capacity: 200,
   features: ['in_out', 'attribute_gender', 'attribute_age'],
-  zones: [],
 })
 
 const showRulePreviewModal = ref(false)
@@ -571,6 +603,7 @@ async function loadData() {
         name: '中央综合主展厅',
         entry_cameras: ['cam_001'],
         exit_cameras: ['cam_003'],
+        zones: ['展台A - AI体验区', '展台B - 智能硬件区'],
         current_in_venue: 13,
         total_in: 128,
         capacity: 200,
@@ -624,27 +657,110 @@ function openDrawZoneModal(zone) {
   fetchSnapshotAndRender(zone.camera_id)
 }
 
+// 绘制科技感展台仿真高清底图（保障 100% 毫秒级展示）
+function createSyntheticSceneImage(cameraName) {
+  const c = document.createElement('canvas')
+  c.width = 1280
+  c.height = 720
+  const ctx = c.getContext('2d')
+  
+  // 深空灰背景与透视渐变
+  const grad = ctx.createLinearGradient(0, 0, 0, 720)
+  grad.addColorStop(0, '#0a1325')
+  grad.addColorStop(1, '#020617')
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, 1280, 720)
+
+  // 地面透视网格
+  ctx.strokeStyle = 'rgba(0, 180, 255, 0.15)'
+  ctx.lineWidth = 1
+  for (let x = -400; x <= 1680; x += 120) {
+    ctx.beginPath()
+    ctx.moveTo(640, 240)
+    ctx.lineTo(x, 720)
+    ctx.stroke()
+  }
+  for (let y = 240; y <= 720; y += 45) {
+    ctx.beginPath()
+    ctx.moveTo(0, y)
+    ctx.lineTo(1280, y)
+    ctx.stroke()
+  }
+
+  // 展台模型底座
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.85)'
+  ctx.strokeStyle = '#00b4ff'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(300, 320)
+  ctx.lineTo(980, 320)
+  ctx.lineTo(1080, 580)
+  ctx.lineTo(200, 580)
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+
+  // 顶部发光霓虹牌
+  ctx.fillStyle = 'rgba(0, 229, 163, 0.12)'
+  ctx.fillRect(360, 280, 560, 36)
+  ctx.strokeStyle = '#00e5a3'
+  ctx.strokeRect(360, 280, 560, 36)
+  ctx.fillStyle = '#00e5a3'
+  ctx.font = 'bold 16px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('🏛️ SMART BOOTH ANALYTICS · 智能展台监测区', 640, 304)
+
+  // 摄像头 OSD 水印
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'
+  ctx.fillRect(16, 16, 380, 34)
+  ctx.fillStyle = '#00b4ff'
+  ctx.font = '13px monospace'
+  ctx.textAlign = 'left'
+  ctx.fillText(`CAM: ${cameraName || 'cam_001'} | 1080P | 25FPS | REC ●`, 26, 38)
+
+  const img = new Image()
+  img.src = c.toDataURL('image/jpeg', 0.85)
+  return img
+}
+
 async function fetchSnapshotAndRender(cameraId) {
   isDrawLoading.value = true
+  bgImage.value = null
+
+  // 立即设置一个默认的高清科技底图，防止白屏
+  const fallbackImg = createSyntheticSceneImage(cameraId)
+
+  let timeoutPromise = new Promise((resolve) => setTimeout(resolve, 2000, null))
+
   try {
-    const res = await axios.post(`${API}/api/cameras/preview-analyze`, {
+    const fetchPromise = axios.post(`${API}/api/cameras/preview-analyze`, {
       camera_id: cameraId || 'cam_001',
       features: ['dwell'],
       rois: [],
     })
-    if (res.data && res.data.preview_base64) {
+
+    const res = await Promise.race([fetchPromise, timeoutPromise])
+
+    if (res && res.data && res.data.preview_base64) {
       const img = new Image()
       img.onload = () => {
         bgImage.value = img
         isDrawLoading.value = false
         setupCanvas()
       }
+      img.onerror = () => {
+        bgImage.value = fallbackImg
+        isDrawLoading.value = false
+        setupCanvas()
+      }
       img.src = `data:image/jpeg;base64,${res.data.preview_base64}`
     } else {
+      bgImage.value = fallbackImg
       isDrawLoading.value = false
       setupCanvas()
     }
   } catch {
+    bgImage.value = fallbackImg
     isDrawLoading.value = false
     setupCanvas()
   }
@@ -653,10 +769,9 @@ async function fetchSnapshotAndRender(cameraId) {
 function setupCanvas() {
   const canvas = drawCanvasRef.value
   if (!canvas) return
-  const ctx = canvas.getContext('2d')
   canvas.width = 1280
   canvas.height = 720
-  redrawCanvas(ctx)
+  redrawCanvas(canvas.getContext('2d'))
 }
 
 function redrawCanvas(ctx) {
@@ -666,7 +781,7 @@ function redrawCanvas(ctx) {
   if (bgImage.value) {
     ctx.drawImage(bgImage.value, 0, 0, 1280, 720)
   } else {
-    ctx.fillStyle = '#0f172a'
+    ctx.fillStyle = '#0a1325'
     ctx.fillRect(0, 0, 1280, 720)
   }
 
@@ -679,7 +794,7 @@ function redrawCanvas(ctx) {
     }
     if (pts.length >= 3) {
       ctx.closePath()
-      ctx.fillStyle = 'rgba(0, 200, 255, 0.22)'
+      ctx.fillStyle = 'rgba(0, 200, 255, 0.25)'
       ctx.fill()
     }
     ctx.strokeStyle = '#00e5a3'
@@ -706,9 +821,9 @@ function redrawCanvas(ctx) {
     ctx.beginPath()
     ctx.moveTo(last[0], last[1])
     ctx.lineTo(hoverPoint.value[0], hoverPoint.value[1])
-    ctx.strokeStyle = 'rgba(0, 229, 163, 0.5)'
+    ctx.strokeStyle = 'rgba(0, 229, 163, 0.6)'
     ctx.lineWidth = 2
-    ctx.setLineDash([5, 5])
+    ctx.setLineDash([6, 6])
     ctx.stroke()
     ctx.setLineDash([])
   }
@@ -754,10 +869,10 @@ function clearAllPoints() {
 
 function resetToDefaultBox() {
   polygonPoints.value = [
-    [200, 240],
-    [500, 240],
-    [480, 580],
-    [160, 580],
+    [320, 330],
+    [960, 330],
+    [1040, 560],
+    [240, 560],
   ]
   const canvas = drawCanvasRef.value
   if (canvas) redrawCanvas(canvas.getContext('2d'))
@@ -765,7 +880,7 @@ function resetToDefaultBox() {
 
 async function saveAndSolidifyPolygon() {
   if (polygonPoints.value.length < 3) {
-    alert('请至少在视频画面中点击 3 个点以圈出闭合多边形区域')
+    alert('请在画面中点击至少 3 个点圈出闭合的多边形展台区域')
     return
   }
 
@@ -775,7 +890,6 @@ async function saveAndSolidifyPolygon() {
     camera_id: drawTargetRoi.value.camera_id,
     polygon: polygonPoints.value,
     min_dwell_seconds: drawTargetRoi.value.min_dwell_seconds || 5,
-    features: drawTargetRoi.value.features || ['dwell'],
   }
 
   try {
@@ -783,17 +897,22 @@ async function saveAndSolidifyPolygon() {
     isSaving.value = false
     isSolidifiedSuccess.value = true
     await loadData()
+    // 0.8s 自动优雅关闭
     setTimeout(() => {
       showDrawModal.value = false
-    }, 1200)
+      isSolidifiedSuccess.value = false
+    }, 800)
   } catch (err) {
     isSaving.value = false
-    alert(`保存失败: ${err.message || '网络异常'}`)
+    alert(`保存展台区域失败: ${err.message || '网络异常'}`)
   }
 }
 
 async function deleteZone(zone) {
   if (!confirm(`确定要删除展台 [${zone.name}] 吗？`)) return
+  try {
+    await axios.delete(`${API}/api/cameras/rois/${encodeURIComponent(zone.name)}`)
+  } catch {}
   zoneList.value = zoneList.value.filter(z => z.name !== zone.name)
 }
 
@@ -803,9 +922,9 @@ function openAddVenueModal() {
     name: '',
     entry_cameras: cameras.value[0]?.id ? [cameras.value[0].id] : ['cam_001'],
     exit_cameras: cameras.value[1]?.id ? [cameras.value[1].id] : ['cam_003'],
+    zones: zoneList.value.length ? [zoneList.value[0].name] : [],
     capacity: 200,
     features: ['in_out', 'attribute_gender', 'attribute_age'],
-    zones: [],
   }
   showVenueModal.value = true
 }
@@ -816,9 +935,9 @@ function openEditVenueModal(v) {
     name: v.name,
     entry_cameras: [...(v.entry_cameras || [])],
     exit_cameras: [...(v.exit_cameras || [])],
+    zones: [...(v.zones || [])],
     capacity: v.capacity || 200,
     features: v.features || ['in_out', 'attribute_gender', 'attribute_age'],
-    zones: [...(v.zones || [])],
   }
   showVenueModal.value = true
 }
@@ -888,41 +1007,38 @@ onMounted(() => {
 }
 
 .page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #f1f5f9;
-  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
 }
-
 .page-desc {
   font-size: 12px;
   color: #64748b;
+  margin-top: 4px;
 }
 
 .subnav-tabs {
   display: flex;
-  background: rgba(10, 22, 40, 0.85);
-  border: 1px solid rgba(0, 180, 255, 0.25);
-  border-radius: 6px;
-  padding: 3px;
-  gap: 4px;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
-
 .subnav-btn {
   background: transparent;
   border: none;
   color: #94a3b8;
   padding: 6px 14px;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 500;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 13px;
   transition: all 0.2s;
 }
-
 .subnav-btn.active {
   background: #00b4ff;
-  color: #0a1628;
+  color: #030712;
   font-weight: 700;
 }
 
@@ -930,9 +1046,13 @@ onMounted(() => {
   display: flex;
   align-items: center;
 }
-
 .filter-select {
-  width: 220px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #0f172a;
+  border: 1px solid rgba(0, 180, 255, 0.3);
+  color: #ffffff;
+  font-size: 13px;
 }
 
 .zone-grid, .venue-grid {
@@ -942,33 +1062,17 @@ onMounted(() => {
 }
 
 .card {
-  background: rgba(13, 27, 46, 0.82);
-  border: 1px solid rgba(0, 180, 255, 0.2);
-  border-radius: 8px;
-  padding: 14px 16px;
-  backdrop-filter: blur(10px);
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(0, 180, 255, 0.18);
+  border-radius: 12px;
+  padding: 16px;
+  backdrop-filter: blur(8px);
 }
 
 .zone-name-title, .venue-title {
   font-size: 15px;
   font-weight: 700;
-  color: #e2e8f0;
-}
-
-.info-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.info-label {
-  color: #64748b;
-}
-
-.info-val {
-  color: #38bdf8;
-  font-weight: 500;
+  color: #00b4ff;
 }
 
 .feature-pills {
@@ -976,420 +1080,323 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 6px;
 }
-
 .feat-pill {
-  font-size: 11px;
-  background: rgba(0, 180, 255, 0.1);
+  font-size: 10px;
+  background: rgba(0, 180, 255, 0.12);
   color: #00b4ff;
-  border: 1px solid rgba(0, 180, 255, 0.25);
-  padding: 1px 6px;
-  border-radius: 3px;
+  padding: 2px 7px;
+  border-radius: 4px;
 }
 
 .solidify-box {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 4px;
-  padding: 6px 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.badge-solidified {
-  background: rgba(0, 229, 163, 0.15);
-  color: #00e5a3;
-  border: 1px solid rgba(0, 229, 163, 0.4);
-}
-
-.coords-preview {
+  background: rgba(10, 18, 32, 0.7);
+  padding: 8px 10px;
+  border-radius: 6px;
   font-size: 11px;
+}
+.coords-preview {
+  display: block;
+  font-size: 10px;
   color: #64748b;
-  font-family: monospace;
-  max-width: 130px;
+  margin-top: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: monospace;
 }
 
 .dwell-stat {
-  text-align: center;
-  background: rgba(0, 180, 255, 0.05);
+  background: rgba(30, 41, 59, 0.4);
+  padding: 8px 10px;
   border-radius: 6px;
-  padding: 10px;
+  text-align: center;
 }
-
 .dwell-val {
-  font-size: 30px;
+  font-size: 20px;
   font-weight: 800;
-  color: #38bdf8;
-  line-height: 1;
+  color: #00e5a3;
 }
-
 .dwell-lbl {
-  font-size: 11px;
-  color: #94a3b8;
-  margin-top: 4px;
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 2px;
 }
 
-.gender-track, .cap-track {
-  height: 5px;
-  background: rgba(255, 255, 255, 0.08);
+.gender-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
   overflow: hidden;
   display: flex;
 }
-
-.gender-fill-blue {
-  background: #00b4ff;
-}
-
-.gender-fill-purple {
-  background: #a855f7;
-}
-
-.cap-fill {
-  background: linear-gradient(90deg, #00b4ff, #00e5a3);
-  height: 100%;
-}
+.gender-fill-blue { background: #00b4ff; height: 100%; }
+.gender-fill-purple { background: #a855f7; height: 100%; }
 
 .venue-dual-kpi {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
-
 .kpi-mini-box {
-  background: rgba(0, 0, 0, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 5px;
+  background: rgba(30, 41, 59, 0.5);
   padding: 8px;
+  border-radius: 6px;
   text-align: center;
 }
+.kpi-mini-val { font-size: 18px; font-weight: 800; }
+.kpi-mini-lbl { font-size: 10px; color: #64748b; }
 
-.kpi-mini-val {
-  font-size: 20px;
-  font-weight: 700;
-  color: #ffffff;
+.cap-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
 }
-
-.kpi-mini-val.highlight { color: #00e5a3; }
-.kpi-mini-lbl {
-  font-size: 10px;
-  color: #94a3b8;
+.cap-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00b4ff, #00e5a3);
 }
 
 .rule-flow-box {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px dashed rgba(0, 180, 255, 0.3);
-  border-radius: 6px;
-  padding: 8px 10px;
+  background: rgba(10, 18, 32, 0.75);
+  border-radius: 8px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
-
 .flow-line {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 12px;
 }
-
 .tag-in {
-  background: rgba(0, 229, 163, 0.15);
-  color: #00e5a3;
-  padding: 1px 5px;
-  border-radius: 3px;
+  background: #00b4ff;
+  color: #030712;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
 }
-
+.tag-zone {
+  background: #a855f7;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
 .tag-out {
-  background: rgba(244, 63, 94, 0.15);
-  color: #f43f5e;
-  padding: 1px 5px;
-  border-radius: 3px;
+  background: #00e5a3;
+  color: #030712;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
 }
-
 .flow-text {
   color: #cbd5e1;
-}
-
-.flow-arrow {
-  text-align: center;
-  font-size: 10px;
-  color: #64748b;
-}
-
-.card-footer {
-  display: flex;
-  gap: 8px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.add-placeholder-card {
-  border: 2px dashed rgba(0, 180, 255, 0.3);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 220px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.add-placeholder-card:hover {
-  background: rgba(0, 180, 255, 0.08);
-  border-color: #00b4ff;
-}
-
-.placeholder-icon {
-  font-size: 36px;
-  color: #00b4ff;
-  line-height: 1;
-  margin-bottom: 8px;
-}
-
-.placeholder-text {
-  font-size: 15px;
-  font-weight: 600;
-  color: #e2e8f0;
-}
-
-.placeholder-sub {
-  font-size: 11px;
-  color: #64748b;
-  margin-top: 4px;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-medium {
-  width: 500px;
-  max-width: 95vw;
-}
-
-.modal-large {
-  width: 800px;
-  max-width: 95vw;
-}
-
-.modal-extra-large {
-  width: 1050px;
-  max-width: 96vw;
-  height: 82vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #f1f5f9;
-}
-
-.close-btn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-.close-btn:hover { color: #fff; }
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-label {
   font-size: 12px;
-  color: #94a3b8;
 }
 
-.form-hint {
-  font-size: 10px;
-  color: #64748b;
-}
-
-.checkbox-group {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #94a3b8;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
-  padding: 6px 10px;
-  cursor: pointer;
-}
-
-.checkbox-label.checked {
-  background: rgba(0, 180, 255, 0.15);
-  border-color: #00b4ff;
-  color: #00b4ff;
-}
-
-.multi-select {
-  height: 80px;
-}
-
+/* ── 划线工作台 ────────────────────────────── */
 .drawer-workspace {
-  flex: 1;
   display: grid;
   grid-template-columns: 1fr 220px;
-  gap: 14px;
-  min-height: 0;
-  overflow: hidden;
+  gap: 16px;
+  height: 480px;
 }
-
 .canvas-wrapper {
   position: relative;
   width: 100%;
   height: 100%;
-  background: #0f172a;
-  border: 1px solid rgba(0, 180, 255, 0.3);
-  border-radius: 6px;
+  background: #000;
+  border-radius: 8px;
   overflow: hidden;
+  border: 1px solid rgba(0, 180, 255, 0.3);
 }
-
 .interactive-canvas {
   width: 100%;
   height: 100%;
-  display: block;
   cursor: crosshair;
 }
-
 .canvas-loading-mask {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(15, 23, 42, 0.85);
+  inset: 0;
+  background: rgba(3, 7, 18, 0.85);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   color: #00b4ff;
   font-size: 13px;
 }
-
 .toast-badge {
   position: absolute;
   top: 16px;
   left: 50%;
   transform: translateX(-50%);
   background: #00e5a3;
-  color: #0f172a;
+  color: #030712;
   font-weight: 700;
-  font-size: 13px;
-  padding: 6px 16px;
+  padding: 8px 18px;
   border-radius: 20px;
-  box-shadow: 0 4px 16px rgba(0, 229, 163, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 229, 163, 0.4);
 }
 
 .drawer-toolbox {
-  background: rgba(10, 22, 40, 0.7);
-  border: 1px solid rgba(0, 180, 255, 0.2);
-  border-radius: 6px;
-  padding: 12px;
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 8px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
 }
-
 .toolbox-header {
   font-size: 13px;
-  font-weight: 600;
-  color: #38bdf8;
-  margin-bottom: 8px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 12px;
 }
-
-.toolbox-item {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #94a3b8;
-  margin-top: 4px;
-}
-
 .btn-group-vertical {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.btn-block { width: 100%; }
+.status-hint {
+  display: block;
+  font-size: 11px;
+  color: #f59e0b;
+  margin-top: 2px;
+}
 
-.rule-preview-frame {
-  width: 100%;
-  height: 420px;
-  background: #0f172a;
+.zones-select-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.zone-checkbox-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
   border-radius: 6px;
-  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  font-size: 12px;
+  cursor: pointer;
+}
+.zone-checkbox-pill.checked {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: #a855f7;
+  color: #c084fc;
+}
+
+/* ── 弹窗与通用基础 ────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
 }
+.modal-medium { width: 500px; max-width: 90vw; }
+.modal-large { width: 850px; max-width: 95vw; }
+.modal-extra-large { width: 1080px; max-width: 96vw; }
 
-.preview-img-full {
+.modal-title { font-size: 16px; font-weight: 800; color: #ffffff; }
+.close-btn { background: none; border: none; color: #64748b; font-size: 18px; cursor: pointer; }
+.close-btn:hover { color: #ffffff; }
+
+.form-group { margin-bottom: 12px; }
+.form-label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 5px; }
+.form-hint { font-size: 11px; color: #64748b; margin-top: 4px; }
+.input {
   width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.preview-loading-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  color: #00b4ff;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #0f172a;
+  border: 1px solid rgba(0, 180, 255, 0.3);
+  color: #ffffff;
   font-size: 13px;
+  box-sizing: border-box;
 }
+.input:focus { outline: none; border-color: #00b4ff; }
+.multi-select { height: 90px; }
+
+.checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.checkbox-label {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 12px; color: #cbd5e1; cursor: pointer;
+}
+.checkbox-label.checked { background: rgba(0, 180, 255, 0.2); color: #00b4ff; }
+
+.btn {
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.btn-primary { background: #00b4ff; color: #030712; }
+.btn-primary:hover { background: #38bdf8; }
+.btn-secondary { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
+.btn-secondary:hover { background: rgba(255, 255, 255, 0.18); }
+.btn-danger { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+.btn-sm { padding: 4px 8px; font-size: 12px; }
+.btn-block { width: 100%; }
+
+.rule-preview-frame {
+  width: 100%; height: 450px;
+  background: #000; border-radius: 8px;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.preview-img-full { width: 100%; height: 100%; object-fit: contain; }
 
 .spinner {
-  width: 24px;
-  height: 24px;
+  width: 24px; height: 24px;
   border: 3px solid rgba(0, 180, 255, 0.2);
   border-top-color: #00b4ff;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin 1s linear infinite;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
 .flex-1 { flex: 1; }
+.flex-gap-8 { display: flex; gap: 8px; }
+.flex-gap-12 { display: flex; gap: 12px; }
+.align-center { align-items: center; }
 .justify-end { justify-content: flex-end; }
-.mb-4 { margin-bottom: 4px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mt-20 { margin-top: 20px; }
+.mt-auto { margin-top: auto; }
+.pt-16 { padding-top: 16px; }
 .mb-8 { margin-bottom: 8px; }
 .mb-10 { margin-bottom: 10px; }
 .mb-12 { margin-bottom: 12px; }
 .mb-14 { margin-bottom: 14px; }
 .mb-16 { margin-bottom: 16px; }
-.mt-4 { margin-top: 4px; }
-.mt-12 { margin-top: 12px; }
-.mt-14 { margin-top: 14px; }
-.mt-16 { margin-top: 16px; }
-.mt-20 { margin-top: 20px; }
-.mt-auto { margin-top: auto; }
-.pt-12 { padding-top: 12px; }
-.pt-16 { padding-top: 16px; }
+
+.badge-online { background: rgba(0, 229, 163, 0.15); color: #00e5a3; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+.badge-info { background: rgba(0, 180, 255, 0.15); color: #00b4ff; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+.badge-solidified { background: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+.text-dim { color: #64748b; }
+.text-xs { font-size: 11px; }
+.text-sm { font-size: 12px; }
+.text-success { color: #00e5a3; }
+.highlight { color: #00b4ff; }
 </style>

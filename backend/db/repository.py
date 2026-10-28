@@ -158,11 +158,12 @@ class FlowRepository:
         # 映射间隔到 PostgreSQL date_trunc / TimescaleDB time_bucket 格式
         interval_map = {
             "5m": ("5 minutes", "minute"),
+            "10m": ("10 minutes", "minute"),
             "15m": ("15 minutes", "minute"),
             "1h": ("1 hour", "hour"),
             "1d": ("1 day", "day"),
         }
-        ts_interval, pg_trunc = interval_map.get(interval, ("1 hour", "hour"))
+        ts_interval, pg_trunc = interval_map.get(interval, ("10 minutes", "minute") if interval in ("10m", "10min") else ("1 hour", "hour"))
 
         if not start_time:
             start_time = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
