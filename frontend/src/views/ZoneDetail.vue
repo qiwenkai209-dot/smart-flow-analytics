@@ -2,9 +2,9 @@
   <div class="zone-page">
     <div class="page-header">
       <div>
-        <h1 class="page-title">📐 展台分析与展厅出入规划</h1>
+        <h1 class="page-title">📐 展项配置与出入规划</h1>
         <div class="page-desc">
-          自定义展台圈出区域固化 · 展厅出入规则规划（进入摄像头 ➔ 去往区域 ➔ 出去摄像头完整流向）
+          自定义展项划线固化 · 展项出入规则规划（进入摄像头 ➔ 去往展项 ➔ 出去摄像头完整流向）
         </div>
       </div>
       <div class="header-actions">
@@ -14,24 +14,24 @@
             :class="{ active: activeTab === 'zones' }"
             @click="activeTab = 'zones'"
           >
-            📐 自定义展台
+            📐 自定义展项
           </button>
           <button
             class="subnav-btn"
             :class="{ active: activeTab === 'venue' }"
             @click="activeTab = 'venue'"
           >
-            🚪 展厅出入规划
+            🚪 展项出入规划
           </button>
         </div>
       </div>
     </div>
 
-    <!-- 选项卡 1：自定义展台管理 -->
+    <!-- 选项卡 1：自定义展项管理 -->
     <div v-if="activeTab === 'zones'" class="tab-content">
       <div class="filter-bar flex-between mb-16">
         <div class="flex-gap-12 align-center">
-          <span class="text-sm text-dim">关联摄像头筛选:</span>
+          <span class="text-sm text-dim">筛选关联摄像头:</span>
           <select v-model="selectedCamera" class="input filter-select" @change="loadData">
             <option value="">全部关联摄像头</option>
             <option v-for="c in cameras" :key="c.id" :value="c.id">
@@ -41,7 +41,7 @@
         </div>
         <!-- 只保留这一个新增入口 -->
         <button class="btn btn-primary" @click="openAddZoneModal">
-          ➕ 新增自定义展台
+          ➕ 新增自定义展项
         </button>
       </div>
 
@@ -52,12 +52,7 @@
             <span class="badge badge-online">{{ zone.visits || 0 }} 次到访</span>
           </div>
 
-          <div class="info-row mb-8">
-            <span class="info-label">关联摄像头:</span>
-            <span class="info-val">{{ getCamName(zone.camera_id) }}</span>
-          </div>
-
-          <div class="feature-pills mb-10">
+          <div class="feature-pills mb-8">
             <span
               v-for="f in zone.features || ['dwell', 'attribute_gender', 'attribute_age']"
               :key="f"
@@ -67,7 +62,7 @@
             </span>
           </div>
 
-          <div class="solidify-box mb-12">
+          <div class="solidify-box mb-8">
             <span class="badge badge-solidified">
               🔒 区域已固化 ({{ (zone.polygon && zone.polygon.length) || 4 }} 顶点)
             </span>
@@ -77,11 +72,11 @@
           </div>
 
           <div class="dwell-stat">
-            <div class="dwell-val">{{ zone.avg_dwell_seconds || 0 }}s</div>
+            <div class="dwell-val font-mono">{{ zone.avg_dwell_seconds || 0 }}s</div>
             <div class="dwell-lbl">平均驻留时长 (起计 > {{ zone.min_dwell_seconds || 5 }}s)</div>
           </div>
 
-          <div class="gender-bar-wrap mt-12">
+          <div class="gender-bar-wrap mt-8">
             <div class="flex-between text-xs text-dim mb-4">
               <span>♂ 男 {{ zone.male || 0 }}</span>
               <span>♀ 女 {{ zone.female || 0 }}</span>
@@ -92,7 +87,18 @@
             </div>
           </div>
 
-          <div class="card-footer mt-16">
+          <!-- 关联摄像头放置在展项配置下面 -->
+          <div class="cam-relation-bottom-box mt-10">
+            <div class="flex-between">
+              <span class="cam-relation-tag">📹 关联负责摄像头</span>
+              <span class="cam-relation-status">● 实时绑定</span>
+            </div>
+            <div class="cam-relation-name mt-4">
+              {{ getCamName(zone.camera_id) }}
+            </div>
+          </div>
+
+          <div class="card-footer mt-12">
             <button class="btn btn-primary btn-sm flex-1" @click="openDrawZoneModal(zone)">
               ✏️ 圈出区域固化
             </button>
@@ -107,11 +113,11 @@
       </div>
     </div>
 
-    <!-- 选项卡 2：展厅出入规划 -->
+    <!-- 选项卡 2：展项出入规划 -->
     <div v-if="activeTab === 'venue'" class="tab-content">
       <div class="filter-bar flex-between mb-16">
         <div>
-          <span class="text-sm text-dim">出入规则与展厅协同定义（设置进入摄像头、去往区域及出去摄像头）</span>
+          <span class="text-sm text-dim">出入规则与展项协同定义（关联摄像头放置在出入规划下面）</span>
         </div>
         <button class="btn btn-primary" @click="openAddVenueModal">
           ➕ 新增出入规则
@@ -127,7 +133,7 @@
             </span>
           </div>
 
-          <div class="feature-pills mb-12">
+          <div class="feature-pills mb-10">
             <span
               v-for="f in v.features || ['in_out', 'attribute_gender', 'attribute_age']"
               :key="f"
@@ -137,18 +143,18 @@
             </span>
           </div>
 
-          <div class="venue-dual-kpi mb-12">
+          <div class="venue-dual-kpi mb-10">
             <div class="kpi-mini-box">
-              <div class="kpi-mini-val highlight">{{ v.current_in_venue || 0 }}</div>
+              <div class="kpi-mini-val highlight font-mono">{{ v.current_in_venue || 0 }}</div>
               <div class="kpi-mini-lbl">实时在场人数</div>
             </div>
             <div class="kpi-mini-box">
-              <div class="kpi-mini-val text-success">{{ v.total_in || 0 }}</div>
+              <div class="kpi-mini-val text-success font-mono">{{ v.total_in || 0 }}</div>
               <div class="kpi-mini-lbl">今日累计进场</div>
             </div>
           </div>
 
-          <div class="cap-meter mb-12">
+          <div class="cap-meter mb-10">
             <div class="flex-between text-xs text-dim mb-4">
               <span>饱和度: <b>{{ v.occupancy_rate || 0 }}%</b></span>
               <span>额定容量: <b class="text-primary">{{ v.capacity || 200 }} 人</b></span>
@@ -158,25 +164,26 @@
             </div>
           </div>
 
-          <!-- 完整的流动链路：进入摄像头 ➔ 去往区域 ➔ 出去摄像头 -->
-          <div class="rule-flow-box mb-14">
+          <!-- 关联摄像头与去往展项放置在出入规划正下方 -->
+          <div class="cam-relation-bottom-box mt-10">
+            <div class="cam-relation-tag mb-6">📹 规划关联摄像头与展项流向</div>
             <div class="flow-line in">
               <span class="tag-in">进入摄像头 (+)</span>
               <span class="flow-text">{{ (v.entry_cameras && v.entry_cameras.length) ? v.entry_cameras.join(', ') : '未指定' }}</span>
             </div>
-            <div class="flow-line zone-target">
-              <span class="tag-zone">去往区域 (流向)</span>
+            <div class="flow-line zone-target mt-4">
+              <span class="tag-zone">去往展项 (流向)</span>
               <span class="flow-text">{{ (v.zones && v.zones.length) ? v.zones.join(', ') : '全馆自由流转' }}</span>
             </div>
-            <div class="flow-line out">
+            <div class="flow-line out mt-4">
               <span class="tag-out">出去摄像头 (-)</span>
               <span class="flow-text">{{ (v.exit_cameras && v.exit_cameras.length) ? v.exit_cameras.join(', ') : '未指定' }}</span>
             </div>
           </div>
 
-          <div class="card-footer">
+          <div class="card-footer mt-12">
             <button class="btn btn-primary btn-sm flex-1" @click="previewRuleOverlay(v)">
-              👁️ 预览出入箭头与区域
+              👁️ 预览出入流动
             </button>
             <button class="btn btn-secondary btn-sm" @click="openEditVenueModal(v)">
               ⚙️ 编辑
@@ -189,35 +196,25 @@
       </div>
     </div>
 
-    <!-- 弹窗 1：自定义展台配置表单 -->
+    <!-- 弹窗 1：自定义展项配置表单 -->
     <div class="modal-overlay" v-if="showZoneModal" @click.self="showZoneModal = false">
       <div class="modal card modal-medium">
         <div class="flex-between mb-16">
-          <div class="modal-title">📐 自定义展台配置</div>
+          <div class="modal-title">📐 自定义展项配置</div>
           <button class="close-btn" @click="showZoneModal = false">✕</button>
         </div>
 
         <div class="form-group mb-14">
-          <label class="form-label">展台名称 *</label>
+          <label class="form-label">展项名称 *</label>
           <input
             v-model="zoneForm.name"
             class="input"
-            placeholder="例如: 展台A - AI体验区"
+            placeholder="例如: 展项A - AI体验区"
           />
         </div>
 
         <div class="form-group mb-14">
-          <label class="form-label">1. 选择关联摄像头 *</label>
-          <select v-model="zoneForm.camera_id" class="input">
-            <option value="" disabled>请选择负责该展台的摄像头</option>
-            <option v-for="c in cameras" :key="c.id" :value="c.id">
-              📹 {{ c.name }} ({{ c.id }})
-            </option>
-          </select>
-        </div>
-
-        <div class="form-group mb-14">
-          <label class="form-label">2. 勾选分析功能 *</label>
+          <label class="form-label">勾选分析功能 *</label>
           <div class="checkbox-group">
             <label
               v-for="(name, key) in FEATURE_NAMES"
@@ -235,7 +232,7 @@
           </div>
         </div>
 
-        <div class="form-group mb-16">
+        <div class="form-group mb-14">
           <label class="form-label">最小有效驻留时长阈值 (秒)</label>
           <input
             type="number"
@@ -244,6 +241,18 @@
             min="1"
             max="120"
           />
+        </div>
+
+        <!-- 关联摄像头放置在展项配置下面 -->
+        <div class="form-group mb-16 cam-form-section">
+          <label class="form-label">📹 关联负责摄像头 *</label>
+          <select v-model="zoneForm.camera_id" class="input">
+            <option value="" disabled>请选择负责该展项的摄像头</option>
+            <option v-for="c in cameras" :key="c.id" :value="c.id">
+              📹 {{ c.name }} ({{ c.id }})
+            </option>
+          </select>
+          <div class="form-hint">摄像头将对准并捕获该展项的多边形分析区域</div>
         </div>
 
         <div class="flex-gap-8 mt-20 justify-end">
@@ -262,7 +271,7 @@
           <div>
             <div class="modal-title">📐 圈出区域并固化 - {{ drawTargetRoi?.name }}</div>
             <div class="text-xs text-dim">
-              关联摄像头: {{ getCamName(drawTargetRoi?.camera_id) }} · 在视频画面上依次点击添加顶点圈出展台多边形区域，完成后点击「下一步：确认并固化展台区域」
+              关联摄像头: {{ getCamName(drawTargetRoi?.camera_id) }} · 在视频画面上依次点击添加顶点圈出展项多边形区域，完成后点击「下一步：确认并固化展项区域」
             </div>
           </div>
           <button class="close-btn" @click="showDrawModal = false">✕</button>
@@ -283,7 +292,7 @@
             </div>
 
             <div v-if="isSolidifiedSuccess" class="toast-badge">
-              ✅ 展台区域已成功固化保存！正在返回...
+              ✅ 展项区域已成功固化保存！正在返回...
             </div>
           </div>
 
@@ -316,7 +325,7 @@
                 class="btn btn-secondary btn-sm"
                 @click="resetToDefaultBox"
               >
-                📐 标准推荐展台框
+                📐 标准推荐展项框
               </button>
               <button
                 class="btn btn-secondary btn-sm"
@@ -327,13 +336,12 @@
             </div>
 
             <div class="toolbox-footer mt-auto pt-16">
-              <!-- 清晰的下一步保存按钮，彻底解决无法下一步的体验问题 -->
               <button
                 class="btn btn-primary btn-block"
                 @click="saveAndSolidifyPolygon"
                 :disabled="polygonPoints.length < 3 || isSaving"
               >
-                {{ isSaving ? '正在固化保存中...' : '下一步: 确认并固化展台区域 ➔' }}
+                {{ isSaving ? '正在固化保存中...' : '下一步: 确认并固化展项区域 ➔' }}
               </button>
             </div>
           </div>
@@ -341,11 +349,11 @@
       </div>
     </div>
 
-    <!-- 弹窗 3：展厅出入规划弹窗（新增去区域选项） -->
+    <!-- 弹窗 3：展项出入规划弹窗 -->
     <div class="modal-overlay" v-if="showVenueModal" @click.self="showVenueModal = false">
       <div class="modal card modal-medium">
         <div class="flex-between mb-16">
-          <div class="modal-title">🚪 出入规则规划与去区域配置</div>
+          <div class="modal-title">🚪 出入规则规划与去展项配置</div>
           <button class="close-btn" @click="showVenueModal = false">✕</button>
         </div>
 
@@ -359,7 +367,7 @@
         </div>
 
         <div class="form-group mb-12">
-          <label class="form-label">1. 勾选分析功能 *</label>
+          <label class="form-label">勾选分析功能 *</label>
           <div class="checkbox-group">
             <label
               v-for="(name, key) in FEATURE_NAMES"
@@ -378,51 +386,7 @@
         </div>
 
         <div class="form-group mb-12">
-          <label class="form-label">2. 选择进入摄像头 (负责 + 增加客流) *</label>
-          <select v-model="venueForm.entry_cameras" multiple class="input multi-select">
-            <option v-for="c in cameras" :key="c.id" :value="c.id">
-              [入] {{ c.name }} ({{ c.id }})
-            </option>
-          </select>
-          <div class="form-hint">可按住 Ctrl 进行多选，支持多进配合</div>
-        </div>
-
-        <!-- 用户新增需求：去区域选项 -->
-        <div class="form-group mb-12">
-          <label class="form-label">3. 选择去往区域 (观众进场后流向的展台/功能区) *</label>
-          <div class="zones-select-group">
-            <label
-              v-for="z in zoneList"
-              :key="z.name"
-              class="zone-checkbox-pill"
-              :class="{ checked: (venueForm.zones || []).includes(z.name) }"
-            >
-              <input
-                type="checkbox"
-                :value="z.name"
-                v-model="venueForm.zones"
-              />
-              <span>📐 {{ z.name }}</span>
-            </label>
-            <div v-if="!zoneList.length" class="text-xs text-dim">
-              暂无已固化展台，可在左侧「自定义展台」先圈出展台区域
-            </div>
-          </div>
-          <div class="form-hint">勾选观众进场后主要去往的展台或区域</div>
-        </div>
-
-        <div class="form-group mb-12">
-          <label class="form-label">4. 选择出去摄像头 (负责 - 扣除客流) *</label>
-          <select v-model="venueForm.exit_cameras" multiple class="input multi-select">
-            <option v-for="c in cameras" :key="c.id" :value="c.id">
-              [出] {{ c.name }} ({{ c.id }})
-            </option>
-          </select>
-          <div class="form-hint">支持多出配合，进出差值自动核算实时在场人数</div>
-        </div>
-
-        <div class="form-group mb-16">
-          <label class="form-label">5. 额定设计容量 (人，用于计算饱和度)</label>
+          <label class="form-label">额定设计容量 (人)</label>
           <input
             type="number"
             v-model.number="venueForm.capacity"
@@ -432,7 +396,52 @@
           />
         </div>
 
-        <div class="flex-gap-8 mt-20 justify-end">
+        <!-- 关联摄像头与去往展项放置在出入规划正下方 -->
+        <div class="cam-form-section p-10 mb-16">
+          <div class="cam-relation-tag mb-10">📹 关联摄像头与展项流向规划</div>
+
+          <div class="form-group mb-10">
+            <label class="form-label">进入摄像头 (负责 + 增加客流) *</label>
+            <select v-model="venueForm.entry_cameras" multiple class="input multi-select">
+              <option v-for="c in cameras" :key="c.id" :value="c.id">
+                [入] {{ c.name }} ({{ c.id }})
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group mb-10">
+            <label class="form-label">去往展项 (观众进场后流向的展项) *</label>
+            <div class="zones-select-group">
+              <label
+                v-for="z in zoneList"
+                :key="z.name"
+                class="zone-checkbox-pill"
+                :class="{ checked: (venueForm.zones || []).includes(z.name) }"
+              >
+                <input
+                  type="checkbox"
+                  :value="z.name"
+                  v-model="venueForm.zones"
+                />
+                <span>📐 {{ z.name }}</span>
+              </label>
+              <div v-if="!zoneList.length" class="text-xs text-dim">
+                暂无已固化展项，可在「自定义展项」中先圈出区域
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group mb-4">
+            <label class="form-label">出去摄像头 (负责 - 扣除客流) *</label>
+            <select v-model="venueForm.exit_cameras" multiple class="input multi-select">
+              <option v-for="c in cameras" :key="c.id" :value="c.id">
+                [出] {{ c.name }} ({{ c.id }})
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex-gap-8 mt-16 justify-end">
           <button class="btn btn-secondary" @click="showVenueModal = false">取消</button>
           <button class="btn btn-primary" @click="saveVenueRule">
             💾 保存规则 (同步首页态势)
@@ -485,7 +494,7 @@ const FEATURE_NAMES = {
   in_out: '🚪 出入客流',
   attribute_gender: '⚥ 男女性别',
   attribute_age: '🎂 年龄分析',
-  dwell: '⏱️ 展台驻留',
+  dwell: '⏱️ 展项驻留',
 }
 
 const activeTab = ref('zones')
@@ -521,7 +530,7 @@ const venueForm = ref({
   name: '',
   entry_cameras: [],
   exit_cameras: [],
-  zones: [], // 去往区域选项
+  zones: [],
   capacity: 200,
   features: ['in_out', 'attribute_gender', 'attribute_age'],
 })
@@ -558,7 +567,7 @@ async function loadData() {
   } catch {
     cameras.value = [
       { id: 'cam_001', name: '主入口监控', brand: 'hikvision', connected: true },
-      { id: 'cam_002', name: '展台A顶置', brand: 'dahua', connected: true },
+      { id: 'cam_002', name: '展项A顶置', brand: 'dahua', connected: true },
       { id: 'cam_003', name: '出口客流监控', brand: 'uniview', connected: true },
     ]
   }
@@ -569,7 +578,7 @@ async function loadData() {
   } catch {
     zoneList.value = [
       {
-        name: '展台A - AI体验区',
+        name: '展项A - AI体验区',
         camera_id: 'cam_002',
         visits: 42,
         avg_dwell_seconds: 48,
@@ -580,7 +589,7 @@ async function loadData() {
         features: ['dwell', 'attribute_gender', 'attribute_age'],
       },
       {
-        name: '展台B - 智能硬件区',
+        name: '展项B - 智能硬件区',
         camera_id: 'cam_001',
         visits: 38,
         avg_dwell_seconds: 35,
@@ -603,7 +612,7 @@ async function loadData() {
         name: '中央综合主展厅',
         entry_cameras: ['cam_001'],
         exit_cameras: ['cam_003'],
-        zones: ['展台A - AI体验区', '展台B - 智能硬件区'],
+        zones: ['展项A - AI体验区', '展项B - 智能硬件区'],
         current_in_venue: 13,
         total_in: 128,
         capacity: 200,
@@ -638,7 +647,7 @@ function openEditZoneModal(zone) {
 
 function submitZoneFormAndDraw() {
   if (!zoneForm.value.name.trim()) {
-    alert('请输入展台名称')
+    alert('请输入展项名称')
     return
   }
   if (!zoneForm.value.camera_id) {
@@ -657,21 +666,18 @@ function openDrawZoneModal(zone) {
   fetchSnapshotAndRender(zone.camera_id)
 }
 
-// 绘制科技感展台仿真高清底图（保障 100% 毫秒级展示）
 function createSyntheticSceneImage(cameraName) {
   const c = document.createElement('canvas')
   c.width = 1280
   c.height = 720
   const ctx = c.getContext('2d')
   
-  // 深空灰背景与透视渐变
   const grad = ctx.createLinearGradient(0, 0, 0, 720)
   grad.addColorStop(0, '#0a1325')
   grad.addColorStop(1, '#020617')
   ctx.fillStyle = grad
   ctx.fillRect(0, 0, 1280, 720)
 
-  // 地面透视网格
   ctx.strokeStyle = 'rgba(0, 180, 255, 0.15)'
   ctx.lineWidth = 1
   for (let x = -400; x <= 1680; x += 120) {
@@ -687,7 +693,6 @@ function createSyntheticSceneImage(cameraName) {
     ctx.stroke()
   }
 
-  // 展台模型底座
   ctx.fillStyle = 'rgba(15, 23, 42, 0.85)'
   ctx.strokeStyle = '#00b4ff'
   ctx.lineWidth = 2
@@ -700,7 +705,6 @@ function createSyntheticSceneImage(cameraName) {
   ctx.fill()
   ctx.stroke()
 
-  // 顶部发光霓虹牌
   ctx.fillStyle = 'rgba(0, 229, 163, 0.12)'
   ctx.fillRect(360, 280, 560, 36)
   ctx.strokeStyle = '#00e5a3'
@@ -708,9 +712,8 @@ function createSyntheticSceneImage(cameraName) {
   ctx.fillStyle = '#00e5a3'
   ctx.font = 'bold 16px sans-serif'
   ctx.textAlign = 'center'
-  ctx.fillText('🏛️ SMART BOOTH ANALYTICS · 智能展台监测区', 640, 304)
+  ctx.fillText('🏛️ SMART EXHIBITION · 智能展项监测区', 640, 304)
 
-  // 摄像头 OSD 水印
   ctx.fillStyle = 'rgba(0, 0, 0, 0.6)'
   ctx.fillRect(16, 16, 380, 34)
   ctx.fillStyle = '#00b4ff'
@@ -727,9 +730,7 @@ async function fetchSnapshotAndRender(cameraId) {
   isDrawLoading.value = true
   bgImage.value = null
 
-  // 立即设置一个默认的高清科技底图，防止白屏
   const fallbackImg = createSyntheticSceneImage(cameraId)
-
   let timeoutPromise = new Promise((resolve) => setTimeout(resolve, 2000, null))
 
   try {
@@ -753,7 +754,9 @@ async function fetchSnapshotAndRender(cameraId) {
         isDrawLoading.value = false
         setupCanvas()
       }
-      img.src = `data:image/jpeg;base64,${res.data.preview_base64}`
+      img.src = res.data.preview_base64.startsWith('data:')
+        ? res.data.preview_base64
+        : `data:image/jpeg;base64,${res.data.preview_base64}`
     } else {
       bgImage.value = fallbackImg
       isDrawLoading.value = false
@@ -880,7 +883,7 @@ function resetToDefaultBox() {
 
 async function saveAndSolidifyPolygon() {
   if (polygonPoints.value.length < 3) {
-    alert('请在画面中点击至少 3 个点圈出闭合的多边形展台区域')
+    alert('请在画面中点击至少 3 个点圈出闭合的多边形展项区域')
     return
   }
 
@@ -897,19 +900,18 @@ async function saveAndSolidifyPolygon() {
     isSaving.value = false
     isSolidifiedSuccess.value = true
     await loadData()
-    // 0.8s 自动优雅关闭
     setTimeout(() => {
       showDrawModal.value = false
       isSolidifiedSuccess.value = false
     }, 800)
   } catch (err) {
     isSaving.value = false
-    alert(`保存展台区域失败: ${err.message || '网络异常'}`)
+    alert(`保存展项区域失败: ${err.message || '网络异常'}`)
   }
 }
 
 async function deleteZone(zone) {
-  if (!confirm(`确定要删除展台 [${zone.name}] 吗？`)) return
+  if (!confirm(`确定要删除展项 [${zone.name}] 吗？`)) return
   try {
     await axios.delete(`${API}/api/cameras/rois/${encodeURIComponent(zone.name)}`)
   } catch {}
@@ -979,7 +981,9 @@ async function previewRuleOverlay(v) {
       rois: [],
     })
     if (res.data && res.data.preview_base64) {
-      rulePreviewImage.value = `data:image/jpeg;base64,${res.data.preview_base64}`
+      rulePreviewImage.value = res.data.preview_base64.startsWith('data:')
+        ? res.data.preview_base64
+        : `data:image/jpeg;base64,${res.data.preview_base64}`
     }
   } catch {
     rulePreviewImage.value = ''
@@ -1065,7 +1069,7 @@ onMounted(() => {
   background: rgba(15, 23, 42, 0.75);
   border: 1px solid rgba(0, 180, 255, 0.18);
   border-radius: 12px;
-  padding: 16px;
+  padding: 14px;
   backdrop-filter: blur(8px);
 }
 
@@ -1090,7 +1094,7 @@ onMounted(() => {
 
 .solidify-box {
   background: rgba(10, 18, 32, 0.7);
-  padding: 8px 10px;
+  padding: 6px 8px;
   border-radius: 6px;
   font-size: 11px;
 }
@@ -1098,7 +1102,7 @@ onMounted(() => {
   display: block;
   font-size: 10px;
   color: #64748b;
-  margin-top: 4px;
+  margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1107,23 +1111,22 @@ onMounted(() => {
 
 .dwell-stat {
   background: rgba(30, 41, 59, 0.4);
-  padding: 8px 10px;
+  padding: 6px 8px;
   border-radius: 6px;
   text-align: center;
 }
 .dwell-val {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
   color: #00e5a3;
 }
 .dwell-lbl {
   font-size: 10px;
   color: #64748b;
-  margin-top: 2px;
 }
 
 .gender-track {
-  height: 6px;
+  height: 5px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
   overflow: hidden;
@@ -1132,22 +1135,51 @@ onMounted(() => {
 .gender-fill-blue { background: #00b4ff; height: 100%; }
 .gender-fill-purple { background: #a855f7; height: 100%; }
 
+/* ── 关联摄像头放置在展项/出入规划下面 ─────────────────── */
+.cam-relation-bottom-box {
+  background: rgba(10, 18, 32, 0.85);
+  border: 1px solid rgba(0, 180, 255, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.cam-relation-tag {
+  font-size: 11px;
+  color: #00b4ff;
+  font-weight: 700;
+}
+.cam-relation-status {
+  font-size: 10px;
+  color: #00e5a3;
+}
+.cam-relation-name {
+  font-size: 12px;
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.cam-form-section {
+  background: rgba(10, 18, 32, 0.65);
+  border: 1px dashed rgba(0, 180, 255, 0.35);
+  border-radius: 8px;
+  padding: 10px;
+}
+
 .venue-dual-kpi {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 6px;
 }
 .kpi-mini-box {
   background: rgba(30, 41, 59, 0.5);
-  padding: 8px;
+  padding: 6px;
   border-radius: 6px;
   text-align: center;
 }
-.kpi-mini-val { font-size: 18px; font-weight: 800; }
+.kpi-mini-val { font-size: 16px; font-weight: 800; }
 .kpi-mini-lbl { font-size: 10px; color: #64748b; }
 
 .cap-track {
-  height: 6px;
+  height: 5px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
   overflow: hidden;
@@ -1157,47 +1189,39 @@ onMounted(() => {
   background: linear-gradient(90deg, #00b4ff, #00e5a3);
 }
 
-.rule-flow-box {
-  background: rgba(10, 18, 32, 0.75);
-  border-radius: 8px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
 .flow-line {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 11px;
 }
 .tag-in {
   background: #00b4ff;
   color: #030712;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 4px;
+  padding: 1px 5px;
+  border-radius: 3px;
 }
 .tag-zone {
   background: #a855f7;
   color: #ffffff;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 4px;
+  padding: 1px 5px;
+  border-radius: 3px;
 }
 .tag-out {
   background: #00e5a3;
   color: #030712;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  padding: 1px 6px;
-  border-radius: 4px;
+  padding: 1px 5px;
+  border-radius: 3px;
 }
 .flow-text {
   color: #cbd5e1;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 /* ── 划线工作台 ────────────────────────────── */
@@ -1329,7 +1353,7 @@ onMounted(() => {
   box-sizing: border-box;
 }
 .input:focus { outline: none; border-color: #00b4ff; }
-.multi-select { height: 90px; }
+.multi-select { height: 80px; }
 
 .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
 .checkbox-label {
@@ -1380,16 +1404,23 @@ onMounted(() => {
 .flex-gap-12 { display: flex; gap: 12px; }
 .align-center { align-items: center; }
 .justify-end { justify-content: flex-end; }
+.mt-4 { margin-top: 4px; }
+.mt-6 { margin-top: 6px; }
+.mt-8 { margin-top: 8px; }
+.mt-10 { margin-top: 10px; }
 .mt-12 { margin-top: 12px; }
 .mt-16 { margin-top: 16px; }
 .mt-20 { margin-top: 20px; }
 .mt-auto { margin-top: auto; }
 .pt-16 { padding-top: 16px; }
+.mb-4 { margin-bottom: 4px; }
+.mb-6 { margin-bottom: 6px; }
 .mb-8 { margin-bottom: 8px; }
 .mb-10 { margin-bottom: 10px; }
 .mb-12 { margin-bottom: 12px; }
 .mb-14 { margin-bottom: 14px; }
 .mb-16 { margin-bottom: 16px; }
+.p-10 { padding: 10px; }
 
 .badge-online { background: rgba(0, 229, 163, 0.15); color: #00e5a3; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
 .badge-info { background: rgba(0, 180, 255, 0.15); color: #00b4ff; padding: 2px 6px; border-radius: 4px; font-size: 11px; }

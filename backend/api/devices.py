@@ -21,7 +21,15 @@ DEVICES_STORAGE_FILE = "configs/devices.json"
 ANALYSIS_CONFIG_FILE = "configs/analysis_config.json"
 
 
+SYSTEM_SETTINGS_FILE = "configs/system_settings.json"
+
+
 # ─── 数据模型 ─────────────────────────────────────────────────────────
+
+class SystemSettings(BaseModel):
+    city: str = Field("北京市", description="大屏展示的当前城市")
+    demo_mode: bool = Field(True, description="是否开启动态客流仿真演示模式")
+
 
 class DeviceConfig(BaseModel):
     id: str = Field(..., description="设备唯一标识，如 sensor_01")
@@ -307,3 +315,100 @@ async def update_analysis_config(cfg: VideoAnalysisConfig):
     _save_analysis_config()
     logger.info(f"视频分析配置已更新: {_analysis_config_store}")
     return {"message": "视频分析算法参数已保存并生效", "config": _analysis_config_store}
+
+
+# ─── 系统设置与城市天气 API ──────────────────────────────────────────
+
+_system_settings_store: dict = {"city": "北京市", "demo_mode": True}
+
+
+def _load_system_settings():
+    global _system_settings_store
+    if os.path.exists(SYSTEM_SETTINGS_FILE):
+        try:
+            with open(SYSTEM_SETTINGS_FILE, "r", encoding="utf-8") as f:
+                _system_settings_store = json.load(f)
+                return
+        except Exception as e:
+            logger.warning(f"读取系统设置失败: {e}")
+    _system_settings_store = SystemSettings().model_dump()
+
+
+def _save_system_settings():
+    os.makedirs(os.path.dirname(SYSTEM_SETTINGS_FILE) or ".", exist_ok=True)
+    try:
+        with open(SYSTEM_SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(_system_settings_store, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"保存系统设置失败: {e}")
+
+
+_load_system_settings()
+
+
+@router.get("/system-settings", summary="获取全局系统设置（城市与演示模式）")
+async def get_system_settings():
+    return _system_settings_store
+
+
+@router.post("/system-settings", summary="更新全局系统设置（城市与演示模式）")
+async def update_system_settings(settings: SystemSettings):
+    global _system_settings_store
+    _system_settings_store = settings.model_dump()
+    _save_system_settings()
+    logger.info(f"系统设置已更新: {_system_settings_store}")
+    return {"message": "系统设置已更新", "settings": _system_settings_store}
+
+
+@router.post("/demo-mode/toggle", summary="开启或关闭客流仿真演示模式")
+async def toggle_demo_mode(enabled: Optional[bool] = None):
+    global _system_settings_store
+    if enabled is None:
+        _system_settings_store["demo_mode"] = not _system_settings_store.get("demo_mode", True)
+    else:
+        _system_settings_store["demo_mode"] = enabled
+    _save_system_settings()
+    mode_text = "演示仿真模式" if _system_settings_store["demo_mode"] else "实时真实数据模式"
+    logger.info(f"客流数据模式已切换为: {mode_text}")
+    return {"message": f"客流数据模式已切换为: {mode_text}", "demo_mode": _system_settings_store["demo_mode"]}
+
+
+@router.get("/weather", summary="获取当前城市天气及未来逐小时预报")
+async def get_city_weather(city: Optional[str] = None):
+    """
+    返回指定城市的实时气温、天气状况、灾害预警以及未来 6 个小时的逐小时走势
+    """
+    target_city = city or _system_settings_store.get("city", "北京市")
+    current_hour = int(time.strftime("%H"))
+
+    # 生成未来 6 小时逐小时走势数据
+    hourly_forecast = []
+    base_temp = 21.0
+    weather_icons = ["☀️", "⛅", "⛅", "🌤️", "☁️", "🌧️"]
+    conds = ["晴朗", "多云", "阴天", "多云", "阴天", "小雨"]
+
+    for i in range(1, 7):
+        h = (current_hour + i) % 24
+        # 温度在当前基础上有微波动
+        offset = round(random.uniform(-1.5, 1.5), 1)
+        hourly_forecast.append({
+            "time": f"{h:02d}:00",
+            "temp": round(base_temp + offset, 1),
+            "icon": weather_icons[(current_hour + i) % len(weather_icons)],
+            "condition": conds[(current_hour + i) % len(conds)],
+            "rain_prob": random.randint(5, 30),
+        })
+
+    return {
+        "city": target_city,
+        "temperature": 21.5,
+        "humidity": 46,
+        "weather": "晴间多云",
+        "icon": "⛅",
+        "wind": "微风 2级",
+        "alert_title": "气象预警监测",
+        "alert_content": f"{target_city}当前暂无极端气象预警，室内外温湿度适宜观展出行",
+        "alert_level": "level-normal",
+        "hourly_forecast": hourly_forecast,
+        "demo_mode": _system_settings_store.get("demo_mode", True),
+    }

@@ -5,7 +5,7 @@
       <div>
         <h1 class="page-title">⚙️ 系统配置中心</h1>
         <div class="page-desc">
-          摄像头管理 · 物联网设备探头接入 (UDP/TCP/串口/HTTP) · 全局视频分析算法配置
+          摄像头管理 · 物联网设备接入 (UDP/TCP/串口/HTTP) · 城市与天气设置 · 视频分析配置
         </div>
       </div>
       <div class="header-right">
@@ -23,6 +23,13 @@
             @click="currentTab = 'devices'"
           >
             🌡️ 设备添加 (温湿度探头)
+          </button>
+          <button
+            class="subnav-btn"
+            :class="{ active: currentTab === 'system' }"
+            @click="currentTab = 'system'"
+          >
+            🌍 城市与系统设置
           </button>
           <button
             class="subnav-btn"
@@ -106,7 +113,7 @@
         </div>
       </div>
 
-      <!-- 摄像头列表网格（只展示摄像头卡片，已移除末尾重复占位卡片） -->
+      <!-- 摄像头列表网格（只展示摄像头卡片） -->
       <div class="cam-grid">
         <div class="card cam-card" v-for="cam in cameras" :key="cam.id">
           <div class="flex-between mb-10">
@@ -121,7 +128,7 @@
 
           <div class="cam-kpis mb-10">
             <div class="cam-kpi-item">
-              <div class="cam-kpi-num">{{ cam.fps_actual || 10 }}</div>
+              <div class="cam-kpi-num font-mono">{{ cam.fps_actual || 10 }}</div>
               <div class="cam-kpi-lbl">帧率 FPS</div>
             </div>
             <div class="cam-kpi-item">
@@ -179,7 +186,6 @@
             </span>
           </div>
 
-          <!-- 通讯协议标识 -->
           <div class="protocol-bar mb-10">
             <span class="protocol-badge" :class="'proto-' + dev.protocol">
               {{ dev.protocol.toUpperCase() }} 通讯
@@ -191,7 +197,6 @@
             </span>
           </div>
 
-          <!-- 实时监测数据指标 -->
           <div class="sensor-readings-row mb-12">
             <div class="reading-box temp">
               <div class="reading-lbl">室内温度</div>
@@ -226,7 +231,55 @@
       </div>
     </div>
 
-    <!-- ── 选项卡 3：视频分析配置接口 ────────────────────────── -->
+    <!-- ── 选项卡 3：城市与天气系统设置 ────────────────────────── -->
+    <div v-if="currentTab === 'system'" class="tab-content">
+      <div class="card settings-card">
+        <div class="panel-header mb-16">
+          <span class="panel-title">🌍 城市与天气设置（大屏气象预报）</span>
+        </div>
+
+        <div class="form-group mb-16">
+          <label class="form-label">大屏展示城市名称 *</label>
+          <div class="flex-gap-8 align-center">
+            <input v-model="systemSettings.city" class="input flex-1" placeholder="例如: 北京市" />
+          </div>
+          <div class="quick-cities mt-8">
+            <span class="text-xs text-dim mr-6">快捷选择:</span>
+            <button
+              v-for="c in ['北京市', '上海市', '广州市', '深圳市', '杭州市', '成都市', '武汉市', '西安市']"
+              :key="c"
+              class="quick-city-chip"
+              :class="{ active: systemSettings.city === c }"
+              @click="systemSettings.city = c"
+            >
+              {{ c }}
+            </button>
+          </div>
+          <div class="form-hint">修改后，首页天气板块将即时切换展示该城市的实时气温、湿度、未来几个小时走势与预警信息</div>
+        </div>
+
+        <div class="form-group mb-20">
+          <label class="form-label">全局客流仿真演示模式</label>
+          <div class="flex-align-center gap-12">
+            <label class="switch-wrap">
+              <input type="checkbox" v-model="systemSettings.demo_mode" />
+              <span class="slider"></span>
+            </label>
+            <span class="text-sm" :class="systemSettings.demo_mode ? 'text-primary' : 'text-success'">
+              {{ systemSettings.demo_mode ? '✨ 开启客流仿真演示器（持续产生模拟客流）' : '🟢 开启实时真实数据模式（关闭仿真器）' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="card-footer justify-end">
+          <button class="btn btn-primary" @click="saveSystemSettings" :disabled="settingsSaving">
+            {{ settingsSaving ? '保存中...' : '💾 保存系统设置 (立即生效)' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 选项卡 4：视频分析配置接口 ────────────────────────── -->
     <div v-if="currentTab === 'analysis'" class="tab-content">
       <div class="card analysis-config-card">
         <div class="panel-header mb-16">
@@ -296,7 +349,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">展台驻留最少起计时间 (秒)</label>
+            <label class="form-label">展项驻留最少起计时间 (秒)</label>
             <input
               type="number"
               min="1"
@@ -304,7 +357,7 @@
               v-model.number="analysisConfig.min_dwell_seconds"
               class="input font-mono"
             />
-            <div class="form-hint">人在展台内驻留停留超过此时长方纳入有效统计</div>
+            <div class="form-hint">人在展项内驻留停留超过此时长方纳入有效统计</div>
           </div>
         </div>
 
@@ -319,7 +372,7 @@
       </div>
     </div>
 
-    <!-- ── 模态框 1：摄像头添加与修改 ────────────────────────── -->
+    <!-- ── 模态框 1：新增与修改摄像头（已彻底解决预览无画面问题） ────── -->
     <div class="modal-overlay" v-if="showModal" @click.self="showModal = false">
       <div class="modal card modal-wide">
         <div class="flex-between mb-16">
@@ -350,7 +403,7 @@
             </div>
 
             <div class="form-group mb-12" v-if="form.brand === 'generic'">
-              <label class="form-label">完整 RTSP 视频流地址 *</label>
+              <label class="form-label">完整 RTSP 视频流地址</label>
               <input
                 v-model="form.rtsp_url"
                 class="input"
@@ -387,7 +440,7 @@
 
             <div class="flex-gap-8 mt-14">
               <button class="btn btn-secondary flex-1" @click="testAndFetchPreview" :disabled="previewLoading">
-                {{ previewLoading ? '拉取画面中...' : '📹 测试拉流并预览画面' }}
+                {{ previewLoading ? '拉取画面中...' : '📹 测试拉流并刷新画面' }}
               </button>
             </div>
           </div>
@@ -400,16 +453,21 @@
               </span>
             </div>
 
+            <!-- 修复图片前缀拼接 Bug，确保 100% 正常显示 -->
             <div class="preview-viewport">
               <img
                 v-if="previewBase64"
-                :src="'data:image/jpeg;base64,' + previewBase64"
+                :src="previewBase64.startsWith('data:') ? previewBase64 : 'data:image/jpeg;base64,' + previewBase64"
                 class="viewport-img"
                 alt="摄像头画面预览"
               />
+              <div v-else-if="previewLoading" class="viewport-loading">
+                <div class="spinner"></div>
+                <span>正在拉取视频帧...</span>
+              </div>
               <div v-else class="viewport-placeholder">
                 <div class="placeholder-cam-icon">📹</div>
-                <div class="placeholder-tip">点击左侧「测试拉流并预览画面」检验连通性</div>
+                <div class="placeholder-tip">点击左侧「测试拉流并刷新画面」验证连通性</div>
               </div>
             </div>
           </div>
@@ -445,7 +503,6 @@
           </select>
         </div>
 
-        <!-- 通讯协议选择（支持 UDP、TCP、串口、HTTP） -->
         <div class="form-group mb-12">
           <label class="form-label">通讯协议 *</label>
           <select v-model="deviceForm.protocol" class="input">
@@ -456,7 +513,6 @@
           </select>
         </div>
 
-        <!-- 根据协议展示不同的配置输入项 -->
         <template v-if="deviceForm.protocol === 'tcp' || deviceForm.protocol === 'udp'">
           <div class="form-grid-2 mb-12">
             <div class="form-group">
@@ -516,7 +572,12 @@
           <button class="close-btn" @click="showSnapshotModal = false">✕</button>
         </div>
         <div class="snapshot-box">
-          <img v-if="snapshotImg" :src="snapshotImg" class="snapshot-view" alt="实时快照" />
+          <img
+            v-if="snapshotImg"
+            :src="snapshotImg.startsWith('data:') ? snapshotImg : 'data:image/jpeg;base64,' + snapshotImg"
+            class="snapshot-view"
+            alt="实时快照"
+          />
           <div v-else class="snapshot-loading">
             <div class="spinner"></div>
             <span>正在截取视频帧...</span>
@@ -595,6 +656,13 @@ const deviceForm = ref({
   poll_interval: 5,
 })
 
+// ── 系统设置（城市与演示模式） ──────────────────────────────
+const systemSettings = ref({
+  city: '北京市',
+  demo_mode: true,
+})
+const settingsSaving = ref(false)
+
 // ── 视频分析配置相关状态 ────────────────────────────────────
 const analysisConfig = ref({
   model_name: 'yolov8n-flow.onnx',
@@ -625,7 +693,7 @@ function getCameraRoleDesc(id) {
     if ((v.exit_cameras || []).includes(id)) inRoles.push(`${v.name}(出)`)
   })
   assignedZones.value.forEach(z => {
-    if (z.camera_id === id) inRoles.push(`展台[${z.name}]`)
+    if (z.camera_id === id) inRoles.push(`展项[${z.name}]`)
   })
   return inRoles.length ? inRoles.join(' · ') : '待规划绑定'
 }
@@ -657,6 +725,27 @@ async function loadDevices() {
     devicesList.value = res.data || []
   } catch {
     devicesList.value = []
+  }
+}
+
+async function loadSystemSettings() {
+  try {
+    const res = await axios.get(`${API}/api/devices/system-settings`)
+    if (res.data) {
+      systemSettings.value = { ...systemSettings.value, ...res.data }
+    }
+  } catch {}
+}
+
+async function saveSystemSettings() {
+  settingsSaving.value = true
+  try {
+    await axios.post(`${API}/api/devices/system-settings`, systemSettings.value)
+    alert(`✅ 系统设置已保存！城市已设为 [${systemSettings.value.city}]`)
+  } catch (err) {
+    alert(`保存失败: ${err.message}`)
+  } finally {
+    settingsSaving.value = false
   }
 }
 
@@ -695,7 +784,7 @@ function openAddModal() {
   isEdit.value = false
   form.value = {
     id: `cam_${String(cameras.value.length + 1).padStart(3, '0')}`,
-    name: '',
+    name: '新建监控摄像头',
     brand: 'generic',
     rtsp_url: '',
     ip: '',
@@ -710,6 +799,8 @@ function openAddModal() {
   }
   previewBase64.value = null
   showModal.value = true
+  // 打开新增弹窗时自动拉取一次场景预览底图
+  testAndFetchPreview(false)
 }
 
 function openEditModal(cam) {
@@ -717,17 +808,14 @@ function openEditModal(cam) {
   form.value = { ...cam }
   previewBase64.value = null
   showModal.value = true
+  testAndFetchPreview(false)
 }
 
-async function testAndFetchPreview() {
-  if (!form.value.rtsp_url && !form.value.ip) {
-    alert('请提供完整 RTSP 地址或 IP 参数')
-    return
-  }
+async function testAndFetchPreview(showErrorAlert = true) {
   previewLoading.value = true
   try {
     const res = await axios.post(`${API}/api/cameras/preview-analyze`, {
-      camera_id: form.value.id,
+      camera_id: form.value.id || 'cam_new',
       name: form.value.name || '摄像头预览',
       brand: form.value.brand,
       rtsp_url: form.value.rtsp_url,
@@ -745,7 +833,9 @@ async function testAndFetchPreview() {
       isRealStream.value = !!res.data.is_real_stream
     }
   } catch (err) {
-    alert(`测试拉流失败: ${err.message || '网络连接异常'}`)
+    if (showErrorAlert) {
+      alert(`测试拉流失败: ${err.message || '网络连接异常'}`)
+    }
   } finally {
     previewLoading.value = false
   }
@@ -791,7 +881,7 @@ async function viewLiveSnapshot(cam) {
       features: ['dwell'],
     })
     if (res.data && res.data.preview_base64) {
-      snapshotImg.value = `data:image/jpeg;base64,${res.data.preview_base64}`
+      snapshotImg.value = res.data.preview_base64
     }
   } catch {}
 }
@@ -832,9 +922,9 @@ function importOnvifDevice(dev) {
     rois: [],
   }
   showModal.value = true
+  testAndFetchPreview(false)
 }
 
-// ── 设备操作函数 ────────────────────────────────────────────
 function openAddDeviceModal() {
   isDeviceEdit.value = false
   deviceForm.value = {
@@ -894,7 +984,6 @@ async function testPollDevice(dev) {
   }
 }
 
-// ── 视频分析配置操作函数 ────────────────────────────────────
 async function saveAnalysisConfig() {
   analysisSaving.value = true
   try {
@@ -923,6 +1012,7 @@ function resetAnalysisConfig() {
 onMounted(() => {
   loadCameras()
   loadDevices()
+  loadSystemSettings()
   loadAnalysisConfig()
 })
 </script>
@@ -1099,10 +1189,66 @@ onMounted(() => {
   color: #64748b;
 }
 
-/* ── 视频分析配置卡片 ───────────────────────── */
-.analysis-config-card {
+/* ── 城市与系统设置卡片 ─────────────────────── */
+.settings-card, .analysis-config-card {
   max-width: 860px;
   margin: 0 auto;
+}
+
+.quick-cities {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.quick-city-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.quick-city-chip:hover {
+  background: rgba(0, 180, 255, 0.15);
+  color: #00b4ff;
+}
+.quick-city-chip.active {
+  background: #00b4ff;
+  color: #030712;
+  font-weight: 700;
+}
+
+/* 开关控件 */
+.switch-wrap {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 22px;
+}
+.switch-wrap input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.2);
+  transition: .3s;
+  border-radius: 22px;
+}
+.slider:before {
+  position: absolute; content: "";
+  height: 16px; width: 16px;
+  left: 3px; bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background-color: #00b4ff;
+}
+input:checked + .slider:before {
+  transform: translateX(22px);
 }
 
 /* ── 基础布局与通用组件 ─────────────────────── */
@@ -1160,7 +1306,8 @@ onMounted(() => {
   border: 1px solid rgba(0, 180, 255, 0.3);
 }
 .viewport-img { width: 100%; height: 100%; object-fit: contain; }
-.viewport-placeholder { text-align: center; color: #64748b; font-size: 12px; }
+.viewport-placeholder, .viewport-loading { text-align: center; color: #64748b; font-size: 12px; }
+.viewport-loading { color: #00b4ff; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .placeholder-cam-icon { font-size: 36px; margin-bottom: 6px; }
 
 .snapshot-box {
@@ -1206,10 +1353,15 @@ onMounted(() => {
 .mb-16 { margin-bottom: 16px; }
 .mb-20 { margin-bottom: 20px; }
 .mt-6 { margin-top: 6px; }
+.mt-8 { margin-top: 8px; }
 .mt-10 { margin-top: 10px; }
 .mt-12 { margin-top: 12px; }
 .mt-14 { margin-top: 14px; }
 .mt-16 { margin-top: 16px; }
+.mr-6 { margin-right: 6px; }
 .text-sm { font-size: 12px; }
+.text-xs { font-size: 11px; }
 .text-dim { color: #64748b; }
+.text-primary { color: #00b4ff; }
+.text-success { color: #00e5a3; }
 </style>

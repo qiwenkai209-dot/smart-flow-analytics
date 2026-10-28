@@ -14,13 +14,24 @@
 
       <nav class="topbar-nav">
         <router-link to="/"        class="nav-item">📊 实时大屏</router-link>
-        <router-link to="/zones"   class="nav-item">📐 展台分析</router-link>
+        <router-link to="/zones"   class="nav-item">📐 展项配置</router-link>
         <router-link to="/cameras" class="nav-item">⚙️ 配置</router-link>
       </nav>
 
       <div class="topbar-status">
+        <!-- 演示模式开启/关闭开关按钮 -->
+        <button
+          class="demo-mode-toggle"
+          :class="isDemoMode ? 'mode-demo' : 'mode-live'"
+          @click="toggleDemoMode"
+          :title="isDemoMode ? '点击切换为实时真实数据模式' : '点击开启客流仿真演示模式'"
+        >
+          <span class="mode-dot"></span>
+          <span>{{ isDemoMode ? '✨ 演示模式: 开启' : '🟢 实时数据: 开启' }}</span>
+        </button>
+
         <span class="badge badge-online pulse">
-          <span>●</span> 系统运行中
+          <span>●</span> 引擎运行中
         </span>
         <span class="topbar-time">{{ currentTime }}</span>
       </div>
@@ -39,8 +50,11 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import axios from 'axios'
 
+const API = import.meta.env.VITE_API_URL || ''
 const currentTime = ref('')
+const isDemoMode = ref(true)
 let timer = null
 
 function updateTime() {
@@ -52,7 +66,31 @@ function updateTime() {
   })
 }
 
-onMounted(() => { updateTime(); timer = setInterval(updateTime, 1000) })
+async function fetchDemoStatus() {
+  try {
+    const res = await axios.get(`${API}/api/devices/system-settings`)
+    if (res.data && res.data.demo_mode !== undefined) {
+      isDemoMode.value = res.data.demo_mode
+    }
+  } catch {}
+}
+
+async function toggleDemoMode() {
+  try {
+    const res = await axios.post(`${API}/api/devices/demo-mode/toggle`)
+    if (res.data && res.data.demo_mode !== undefined) {
+      isDemoMode.value = res.data.demo_mode
+    }
+  } catch {
+    isDemoMode.value = !isDemoMode.value
+  }
+}
+
+onMounted(() => {
+  updateTime()
+  timer = setInterval(updateTime, 1000)
+  fetchDemoStatus()
+})
 onUnmounted(() => clearInterval(timer))
 </script>
 
@@ -108,6 +146,33 @@ onUnmounted(() => clearInterval(timer))
 
 .topbar-status {
   display: flex; align-items: center; gap: 12px; margin-left: 16px;
+}
+.demo-mode-toggle {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; border: 1px solid;
+  transition: all 0.2s ease;
+}
+.demo-mode-toggle.mode-demo {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.4);
+  color: #c084fc;
+}
+.demo-mode-toggle.mode-demo:hover {
+  background: rgba(168, 85, 247, 0.25);
+}
+.demo-mode-toggle.mode-live {
+  background: rgba(0, 229, 163, 0.15);
+  border-color: rgba(0, 229, 163, 0.4);
+  color: #00e5a3;
+}
+.demo-mode-toggle.mode-live:hover {
+  background: rgba(0, 229, 163, 0.25);
+}
+.mode-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor;
 }
 .topbar-time {
   font-size: 12px; color: var(--text-muted);

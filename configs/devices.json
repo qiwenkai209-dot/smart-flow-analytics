@@ -1,22 +1,4 @@
 {
-  "sensor_001": {
-    "id": "sensor_001",
-    "name": "中央主展厅温湿度探头",
-    "type": "temperature_humidity",
-    "protocol": "tcp",
-    "ip": "192.168.1.150",
-    "port": 5002,
-    "serial_port": "COM1",
-    "baudrate": 9600,
-    "http_url": "",
-    "poll_interval": 5,
-    "status": "online",
-    "temperature": 23.4,
-    "humidity": 48.3,
-    "co2": 510,
-    "aqi": 28,
-    "last_updated": "2026-10-28 09:47:28"
-  },
   "sensor_002": {
     "id": "sensor_002",
     "name": "AI专馆高精度环境传感器",
@@ -29,10 +11,10 @@
     "http_url": "",
     "poll_interval": 3,
     "status": "online",
-    "temperature": 22.7,
-    "humidity": 45.6,
+    "temperature": 22.6,
+    "humidity": 45.8,
     "co2": 490,
     "aqi": 24,
-    "last_updated": "2026-10-28 09:47:28"
+    "last_updated": "2026-10-28 10:09:49"
   }
 }
